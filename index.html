@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>马来西亚留学专业查询</title><meta name="description" content="查询马来西亚院校专业、申请要求和学费，按学历、成绩与专业方向初筛适合的课程。"><meta name="theme-color" content="#f5f3ee"><script src="./theme.js?v=3061d7c15e597f46"></script><link rel="stylesheet" href="./style.css?v=3061d7c15e597f46"></head>
+<body><main><div class="title-row"><div><p class="eyebrow">马来西亚 · 专业目录</p><h1>马来西亚留学专业查询</h1><p class="sub">查询院校专业、申请条件与学费</p></div><div class="header-tools"><nav class="page-nav" aria-label="主要导航"><a class="page-link featured-link" href="./index.html" aria-current="page">专业查询</a><a class="page-link" href="./match.html">条件匹配</a></nav><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span aria-hidden="true">☾</span> 夜间模式</button></div></div>
+<form id="search"><input id="q" type="search" enterkeyhint="search" aria-label="搜索学校或专业" placeholder="例如：马大经济学 CGPA"><button>搜索</button></form>
+<details id="filterPanel" class="filter-panel" open><summary>筛选条件</summary><div class="filter-content"><section class="filters">
+<div class="filter-label">学校<select id="university" aria-label="学校"><option value="">全部学校</option></select></div>
+<div class="filter-label">学院<select id="faculty" aria-label="学院"><option value="">全部学院</option></select></div>
+<div class="filter-label">学历<select id="degree" aria-label="学历"><option value="">全部学历</option><option value="Foundation">预科课程</option><option value="Diploma">文凭课程</option><option value="Bachelor">本科</option><option value="Master">硕士</option><option value="Doctorate">博士</option><option value="Postgraduate Diploma">研究生文凭</option><option value="Postgraduate Certificate">研究生证书</option></select></div>
+<div class="filter-label">培养类型<select id="type" aria-label="培养类型"><option value="">全部类型</option><option value="Coursework">授课型</option><option value="Research">研究型</option><option value="Mixed Mode">混合型</option><option value="Clinical">临床型</option></select></div>
+<label>IELTS 不高于<input id="ielts" type="number" inputmode="decimal" min="0" max="9" step="0.5"></label>
+<label>CGPA 不高于<input id="cgpa" type="number" inputmode="decimal" min="0" max="4" step="0.1"></label>
+</section></div></details>
+<p id="count" role="status" aria-live="polite">正在加载专业资料…</p><div id="results"></div><button id="loadMore" class="secondary load-more" type="button" hidden>显示更多</button><footer class="site-footer"><div class="footer-credit"><span class="site-brand">欧亚之桥留学</span><span id="dataDate"></span></div><span>申请条件以院校最新官方要求为准</span></footer></main>
+<dialog id="detail"><button class="close" aria-label="关闭">×</button><div id="detailBody"></div></dialog>
+<dialog id="copyFallback"><button class="close" aria-label="关闭">×</button><h2>复制文本</h2><p>自动复制未完成，请长按选中下方文字复制。</p><textarea id="copyText" readonly rows="12" aria-label="可复制的专业资料"></textarea></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script src="./ui.js?v=3061d7c15e597f46"></script><script src="./detail.js?v=3061d7c15e597f46"></script><script src="./filters.js?v=3061d7c15e597f46"></script><script src="./search.js?v=3061d7c15e597f46"></script><script src="./hosted-data.js?v=3061d7c15e597f46"></script><script src="./app.js?v=3061d7c15e597f46"></script></body></html>
