@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>条件匹配｜马来西亚留学专业查询</title><meta name="theme-color" content="#f5f3ee"><script src="./theme.js?v=7401ca7582fde8c1"></script><link rel="stylesheet" href="./style.css?v=7401ca7582fde8c1"></head>
+<body class="match-page"><main>
+<div class="title-row"><div><p class="eyebrow">条件匹配</p><h1>找到适合你的专业</h1><p class="sub">选择申请阶段、专业方向和成绩，初筛符合明确申请要求的专业。</p></div><div class="header-tools"><nav class="page-nav" aria-label="主要导航"><a class="page-link" href="./">专业查询</a><a class="page-link featured-link" href="./match.html" aria-current="page">条件匹配</a></nav><button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false"><span aria-hidden="true">☾</span> 夜间模式</button></div></div>
+<div id="matchFlow"><form id="matchForm" class="match-form">
+  <fieldset><legend><span>01</span>申请哪个阶段？</legend><div class="choice-grid three">
+    <label><input type="radio" name="degree" value="Bachelor" required><span>本科<small>Bachelor</small></span></label>
+    <label><input type="radio" name="degree" value="Master"><span>硕士<small>Master</small></span></label>
+    <label><input type="radio" name="degree" value="Doctorate"><span>博士<small>Doctorate</small></span></label>
+  </div></fieldset>
+  <fieldset><legend><span>02</span>想申请什么方向？</legend><div class="choice-grid direction-grid">
+    <label><input type="radio" name="field" value="" checked><span>暂不限制<small>查看全部方向</small></span></label>
+    <label><input type="radio" name="field" value="business"><span>商科与管理<small>金融 · 会计 · 市场</small></span></label>
+    <label><input type="radio" name="field" value="computing"><span>计算机与数据<small>计算机 · AI · 数据</small></span></label>
+    <label><input type="radio" name="field" value="engineering"><span>工程技术<small>机械 · 电气 · 土木</small></span></label>
+    <label><input type="radio" name="field" value="architecture"><span>建筑与设计<small>建筑 · 规划 · 景观</small></span></label>
+    <label><input type="radio" name="field" value="science"><span>数学与理学<small>数理 · 化学 · 生物</small></span></label>
+    <label><input type="radio" name="field" value="education"><span>教育与语言<small>教育 · 语言 · TESOL</small></span></label>
+    <label><input type="radio" name="field" value="health"><span>医学与健康<small>医学 · 药学 · 健康</small></span></label>
+    <label><input type="radio" name="field" value="humanities"><span>人文与社科<small>心理 · 社会 · 国际关系</small></span></label>
+    <label><input type="radio" name="field" value="law"><span>法律与政策<small>法律 · 政策 · 行政</small></span></label>
+    <label><input type="radio" name="field" value="media"><span>传媒与创意<small>传播 · 艺术 · 影视</small></span></label>
+    <label><input type="radio" name="field" value="agriculture"><span>农业食品环境<small>农业 · 食品 · 环境</small></span></label>
+    <label><input type="radio" name="field" value="hospitality"><span>旅游与酒店<small>旅游 · 酒店 · 会展</small></span></label>
+  </div></fieldset>
+  <fieldset><legend><span>03</span>你的成绩是哪种形式？</legend><div class="choice-grid three">
+    <label><input type="radio" name="scoreType" value="cgpa"><span>CGPA<small>4.0 制</small></span></label>
+    <label><input type="radio" name="scoreType" value="average"><span>百分制均分<small>国内学校常用</small></span></label>
+    <label><input type="radio" name="scoreType" value="unknown" checked><span>暂不确定<small>先不按成绩筛除</small></span></label>
+  </div></fieldset>
+  <fieldset id="scoreQuestion" hidden><legend><span>04</span>目前的成绩是多少？</legend>
+    <div id="cgpaChoices" class="choice-grid score-grid" hidden>
+      <label><input type="radio" name="academicScore" value="2.5"><span>2.50</span></label>
+      <label><input type="radio" name="academicScore" value="2.75"><span>2.75</span></label>
+      <label><input type="radio" name="academicScore" value="3.0"><span>3.00</span></label>
+      <label><input type="radio" name="academicScore" value="3.3"><span>3.30</span></label>
+      <label><input type="radio" name="academicScore" value="3.5"><span>3.50+</span></label>
+    </div>
+    <div id="averageChoices" class="choice-grid score-grid" hidden>
+      <label><input type="radio" name="academicScore" value="60"><span>60–64</span></label>
+      <label><input type="radio" name="academicScore" value="65"><span>65–69</span></label>
+      <label><input type="radio" name="academicScore" value="70"><span>70–74</span></label>
+      <label><input type="radio" name="academicScore" value="75"><span>75–79</span></label>
+      <label><input type="radio" name="academicScore" value="80"><span>80–84</span></label>
+      <label><input type="radio" name="academicScore" value="85"><span>85–89</span></label>
+      <label><input type="radio" name="academicScore" value="90"><span>90+</span></label>
+    </div>
+    <p class="match-help">百分制换算仅用于初筛，不代表申请院校的官方成绩换算。</p>
+  </fieldset>
+  <fieldset><legend><span>05</span>目前的 IELTS 是？</legend><div class="choice-grid five">
+    <label><input type="radio" name="ielts" value="" checked><span>尚未考试</span></label>
+    <label><input type="radio" name="ielts" value="5"><span>5.0</span></label>
+    <label><input type="radio" name="ielts" value="5.5"><span>5.5</span></label>
+    <label><input type="radio" name="ielts" value="6"><span>6.0</span></label>
+    <label><input type="radio" name="ielts" value="6.5"><span>6.5+</span></label>
+  </div></fieldset>
+  <button class="match-submit" type="submit">查看匹配结果</button>
+</form>
+<section id="matchResults" class="match-results" hidden aria-live="polite"><div class="match-summary"><div><p class="eyebrow">初筛结果</p><h2 id="matchTitle"></h2><p id="matchNote"></p><p id="matchScoreNote" class="conversion-note" hidden></p></div><button id="editAnswers" class="secondary" type="button">修改条件</button></div><div id="matchList"></div><button id="matchMore" class="secondary load-more" type="button" hidden>显示更多</button></section>
+</div><footer class="site-footer"><span class="site-brand">欧亚之桥留学</span><span>匹配结果供初筛参考，具体背景及录取要求请查看专业详情</span></footer></main>
+<dialog id="detail"><button class="close" aria-label="关闭">×</button><div id="detailBody"></div></dialog>
+<dialog id="copyFallback"><button class="close" aria-label="关闭">×</button><h2>复制文本</h2><p>自动复制未完成，请长按选中下方文字复制。</p><textarea id="copyText" readonly rows="12" aria-label="可复制的专业资料"></textarea></dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script src="./ui.js?v=7401ca7582fde8c1"></script><script src="./search.js?v=7401ca7582fde8c1"></script><script src="./hosted-data.js?v=7401ca7582fde8c1"></script><script src="./detail.js?v=7401ca7582fde8c1"></script><script src="./match.js?v=7401ca7582fde8c1"></script></body></html>
