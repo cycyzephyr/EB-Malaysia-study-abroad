@@ -1,0 +1,27 @@
+/* School pages reuse the query site's cards, badges, colours and typography. */
+.school-pages #schoolContent{padding-top:28px}
+.school-pages .explore-heading{padding:0 0 20px}
+.school-pages #schoolCount{margin:18px 0}
+.school-intro-card h2{font-size:20px;letter-spacing:-.025em;margin:0;line-height:1.4}
+.school-intro-card .course-school{margin-bottom:12px}
+.school-intro-card .en{margin:0 0 12px}
+.school-summary{margin:0;color:var(--muted);font-size:15px;line-height:1.8}
+.school-intro-card .school-summary{flex:1}
+.school-intro-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+.school-pages dd small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:4px}
+.school-pages .course-footer .page-link{padding-inline:0}
+.school-back{padding-left:0;margin-bottom:18px}
+.school-profile{max-width:1000px;margin:0 auto;box-shadow:none}
+.school-profile:hover{transform:none;box-shadow:none;border-color:var(--line)}
+.school-profile h1{font-size:28px;letter-spacing:-.025em}
+.school-profile h2{font-size:20px;margin:0 0 14px}
+.school-profile h3{font-size:16px;color:var(--accent);margin:0 0 8px}
+.school-overview{line-height:1.9;margin:0}
+.school-profile .requirements>p{line-height:1.9}
+.school-profile .facts{margin-bottom:0}
+.school-profile .requirements{padding-top:24px;border-top:1px solid var(--line)}
+.school-query-link{color:var(--accent);padding-left:0}
+.school-faculties{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.school-faculties .page-link{max-width:100%;overflow-wrap:anywhere;text-align:left;background:var(--surface);font-size:13px;border:1px solid var(--line)}
+.school-sources{padding-left:20px;font-size:14px;line-height:2}
+@media(max-width:720px){.school-profile{padding:20px}.school-profile h1{font-size:23px}.school-profile .course-school{align-items:flex-start}.school-intro-card h2{font-size:19px}.school-summary{font-size:14px}}

@@ -4,7 +4,7 @@
   try { const value=localStorage.getItem('study-theme'); if(value==='light'||value==='dark')saved=value; } catch {}
   function apply(theme) {
     document.documentElement.dataset.theme=theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'?'#0d1423':'#f4f6fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'?'#0d1423':'#f7f8fc');
     const button=document.getElementById('themeToggle');
     if(button){button.innerHTML=theme==='dark'?'<span aria-hidden="true">☼</span> 日间模式':'<span aria-hidden="true">☾</span> 夜间模式';button.setAttribute('aria-pressed',String(theme==='dark'));}
   }

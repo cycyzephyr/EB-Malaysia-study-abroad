@@ -8,6 +8,15 @@
   const phraseIn = (text, phrase) => latin(phrase.toLowerCase()) ? boundary(phrase.toLowerCase()).test(text.toLowerCase()) : text.toLowerCase().includes(phrase.toLowerCase());
   const optionMatches = (option, raw, normalized) => /^[a-z0-9]{1,2}$/.test(compact(option)) ? phraseIn(raw, option) : normalized.includes(compact(option));
   const firstMatch = (aliases, query) => Object.entries(aliases).find(([alias]) => phraseIn(query, alias))?.[1] ?? null;
+  const onlineTerms = /\b(?:open\s+(?:and\s+)?distance\s+learning|distance\s+learning|remote\s+learning|online(?:\s+(?:learning|mode|study|courses?))?|odl)\b|(?:线上|在线)(?:\s*(?:学习|授课|课程))?|远程(?=$|[\s，、,:：()（）a-z]|学习|授课|课程|教育|本科|硕士|博士)(?:\s*(?:学习|授课|课程))?|网络授课/i;
+  const isOnlineSearch = query => onlineTerms.test(String(query ?? ''));
+  function isOnlineStudy(row) {
+    if (isOnlineSearch(row.study_mode)) return true;
+    // Delivery labels are parenthesised or suffixed; a research topic such as
+    // "Master of Philosophy: Online Learning" does not establish online delivery.
+    return [row.programme_name, row.programme_name_cn, ...(row.aliases || [])].some(label =>
+      /(?:^|[(（\[【–—-])\s*(?:online\b|odl\b|(?:open\s+(?:and\s+)?)?distance\s+learning|remote\s+learning|线上|在线|远程(?:学习|授课|教育|课程)|网络授课)/i.test(String(label || '')));
+  }
 
   // Same longest matching block ratio as difflib for the short programme titles.
   function similarity(a, b) {
@@ -35,7 +44,9 @@
   }
 
   function search(catalog, query = '', filters = {}) {
+    const online = isOnlineSearch(query);
     const items = catalog.programmes.filter(item => {
+      if (online && !isOnlineStudy(item)) return false;
       for (const [filter, field] of [['university', 'university_abbr'], ['degree_level', 'degree_level'], ['programme_type', 'programme_type']]) {
         if (filters[filter] && item[field] !== filters[filter]) return false;
       }
@@ -49,7 +60,7 @@
     const answer = item => ({ ...item, requested_field: field, answer: field ? item.field_answers?.[field] || '' : '' });
     if (!query.trim()) return items.map(answer);
 
-    let q = query.toLowerCase();
+    let q = query.toLowerCase().replace(new RegExp(onlineTerms.source, 'gi'), ' ');
     const schools = new Set();
     for (const item of items) if ([...(item.university_aliases || []), item.university_abbr].some(alias => alias && phraseIn(q, String(alias)))) schools.add(item.university_abbr);
     const degree = firstMatch(catalog.degree_aliases, query);
@@ -65,7 +76,7 @@
     let scored = [];
     for (const item of items) {
       if (schools.size && !schools.has(item.university_abbr) || degree && item.degree_level !== degree || type && item.programme_type !== type) continue;
-      const raw = [...['university', 'university_cn', 'university_abbr', 'faculty', 'faculty_cn', 'programme_name', 'programme_name_cn', 'field'].map(key => item[key] || ''), ...(item.aliases || []), ...(item.university_aliases || [])].join(' ');
+      const raw = [...['university', 'university_cn', 'university_abbr', 'faculty', 'faculty_cn', 'programme_name', 'programme_name_cn', 'field', 'study_mode'].map(key => item[key] || ''), ...(item.aliases || []), ...(item.university_aliases || [])].join(' ');
       if (!terms.every(term => matches(term, raw))) continue;
       const name = `${item.programme_name_cn || ''} ${item.programme_name || ''}`;
       const faculty = `${item.faculty_cn || ''} ${item.faculty || ''}`;
@@ -82,9 +93,7 @@
     }
     return scored.sort((a, b) => b[0] - a[0] || (a[1].programme_name < b[1].programme_name ? -1 : a[1].programme_name > b[1].programme_name ? 1 : 0)).map(([, item]) => answer(item));
   }
-  globalThis.isOnlineStudy = row => {
-    const labels = [row.study_mode, row.programme_name, row.programme_name_cn, ...(row.aliases || [])].join(' ');
-    return /\bonline\b|distance learning|remote learning/i.test(labels) || /线上|在线/.test(labels);
-  };
+  globalThis.isOnlineStudy = isOnlineStudy;
+  globalThis.isOnlineSearch = isOnlineSearch;
   globalThis.knowledgeSearch = search;
 })();

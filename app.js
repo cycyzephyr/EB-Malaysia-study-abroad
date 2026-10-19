@@ -1,9 +1,7 @@
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const typeZh={Coursework:'授课型',Research:'研究型','Mixed Mode':'混合型',Clinical:'临床型','待核实':'官网未标明'};
-const degreeZh={Foundation:'预科课程',Diploma:'文凭课程',Certificate:'证书课程',Bachelor:'本科',Master:'硕士',Doctorate:'博士','Postgraduate Diploma':'研究生文凭','Postgraduate Certificate':'研究生证书'};
-const monthZh={January:'1月',February:'2月',March:'3月',April:'4月',May:'5月',June:'6月',July:'7月',August:'8月',September:'9月',October:'10月',November:'11月',December:'12月','Year-round':'全年'};
-const money=r=>(r.tuition_fee_currency==='MYR'?'RM':r.tuition_fee_currency||'RM')+' '+Number(r.tuition_fee_amount).toLocaleString()+({per_year:' / 年',per_semester:' / 学期',total:' / 全程',from_total:' 起 / 全程',minimum_total:' / 最低学制参考总额'}[r.tuition_fee_scope]||' ');
+const degreeZh={'Language Course':'语言课程',Foundation:'预科课程',Diploma:'文凭课程',Certificate:'证书课程',Bachelor:'本科',Master:'硕士',Doctorate:'博士','Postgraduate Diploma':'研究生文凭','Postgraduate Certificate':'研究生证书'};
 let allRows=[],rows=[],searchVersion=0,ready=false,visibleCount=20;
 
 const programmeDirections=[
@@ -37,7 +35,7 @@ function renderBrowse(base=browseBase){
   browseBase=base;
   const degree=$('degree').value,directions=selectedDirections();
   $('direction').value=directions.join(',');
-  const stages=[['','不限学历'],['Bachelor','本科'],['Master','硕士'],['Doctorate','博士'],['Foundation','预科']];
+  const stages=[['','全部'],['Bachelor','本科'],['Master','硕士'],['Doctorate','博士'],['Foundation','预科']];
   const stageButtons=$('degreeChoices').querySelectorAll?.('[data-degree]');
   if(stageButtons?.length)stageButtons.forEach(button=>button.setAttribute('aria-pressed',String(degree===button.dataset.degree)));
   else $('degreeChoices').innerHTML=stages.map(([value,label])=>`<button type="button" data-degree="${value}" aria-pressed="${degree===value}">${label}</button>`).join('');
@@ -64,31 +62,38 @@ function renderBrowse(base=browseBase){
 }
 window.StudyBrowse={matchesDirection,matchesDirections,selectedDirections,directions:programmeDirections};
 
-function directoryRows(){return allRows.filter(r=>!isOnlineStudy(r))}
-function durationText(r){return r.duration_min_months!=null?`${r.duration_max_months==null?'至少':''}${r.duration_min_months}${r.duration_max_months!=null&&r.duration_max_months!==r.duration_min_months?'–'+r.duration_max_months:''}个月`:'';}
+function directoryRows(){return allRows.filter(r=>isOnlineSearch($('q').value)||!isOnlineStudy(r))}
 
 function refreshUniversities(){const current=$("university").value,schools=[...new Map(directoryRows().map(r=>[r.university_abbr,r.university_cn||r.university_abbr])).entries()].filter(([abbr])=>abbr).sort((a,b)=>a[1].localeCompare(b[1],'zh-CN'));$("university").innerHTML='<option value="">全部学校</option>'+schools.map(([abbr,name])=>`<option value="${esc(abbr)}">${esc(name)} · ${esc(abbr)}</option>`).join('');if(schools.some(([abbr])=>abbr===current))$("university").value=current}
 
 function refreshFaculties(){const school=$('university').value,current=$('faculty').value,fac=[...new Map(directoryRows().filter(r=>!school||r.university_abbr===school).map(r=>[r.faculty,r.faculty_cn||r.faculty||'其他'])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'zh-CN'));$('faculty').innerHTML='<option value="">全部学院</option>'+fac.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');if(fac.some(([v])=>v===current))$('faculty').value=current;window.StudyFilters?.sync()}
 
 function groupByFaculty(list){const grouped=new Map();for(const r of list){const key=r.faculty_cn||r.faculty||'其他';if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(r)}return grouped}
-function cardTags(r){return [
-  [degreeZh[r.degree_level]||r.degree_level,typeZh[r.programme_type]||r.programme_type].filter(Boolean).join(' · '),
-  r.cgpa_min!=null?`CGPA ${r.cgpa_min}`:'',r.ielts_min!=null?`IELTS ${r.ielts_min}`:'',durationText(r),
-  r.tuition_fee_amount?`${r.tuition_fee_year?r.tuition_fee_year+'年参考 · ':''}${money(r)}`:r.fee_preview
-].filter(Boolean)}
+function programmeCard(r,arriving=false){
+  return window.StudyUI.courseCard(r,{query:true,arriving});
+}
 function render(list,reset=true,animateFrom=0){
   rows=list;if(reset)visibleCount=20;
-  const shown=[...groupByFaculty(list).values()].flat().slice(0,visibleCount),grouped=groupByFaculty(shown);
-  let index=0;
-  const html=[...grouped].map(([faculty,items])=>`<section class=faculty><h2>${esc(faculty)} <small>${items.length}个专业</small></h2>${items.map(r=>{
-    const i=index++,delay=Math.min(Math.max(0,i-animateFrom),6)*35;
-    return `<article class="card match-card query-card${!reset&&i<animateFrom?' settled':''}" style="--reveal-delay:${delay}ms">${window.StudyUI?.schoolBadge(r)||`<div class=match-school>${esc(r.university_abbr||'院校')}</div>`}<div class=programme-content><h3>${esc(r.programme_name_cn)}</h3><p class=match-program-meta>${esc(r.programme_name)}</p><p class=school-name>${esc(r.university_cn||r.university)}</p><div class=match-reasons>${cardTags(r).map(tag=>`<span>${esc(tag)}</span>`).join('')}</div>${r.requested_field&&r.answer?`<h4>${esc(r.requested_field)}</h4><div class=answer>${esc(r.answer)}</div>`:''}</div><div class="actions card-actions"><button onclick="openDetail('${encodeURIComponent(r.file_path)}')">查看详情</button><button class=secondary onclick="copyResult('${encodeURIComponent(r.file_path)}')">复制摘要</button></div></article>`;
-  }).join('')}</section>`).join('');
-  const update=()=>{$('count').textContent=`找到 ${list.length} 个专业，当前显示 ${shown.length} 个`;$('results').innerHTML=html||'<div class="empty-state"><h2>没有找到符合当前条件的专业</h2><p>可以取消上方某个条件，或重新选择学历和方向。</p></div>';$('loadMore').hidden=shown.length===list.length};
+  const shown=[...groupByFaculty(list).values()].flat().slice(0,visibleCount),grouped=groupByFaculty(reset?shown:shown.slice(animateFrom));
+  const section=(faculty,items)=>`<section class=faculty data-faculty="${esc(faculty)}"><h2>${esc(faculty)} <small>${items.length}个专业</small></h2>${items.map(r=>programmeCard(r,!reset)).join('')}</section>`;
+  const update=()=>{
+    $('count').textContent=`找到 ${list.length} 个专业，当前显示 ${shown.length} 个`;
+    if(reset)$('results').innerHTML=[...grouped].map(([faculty,items])=>section(faculty,items)).join('')||'<div class="empty-state"><h2>没有找到符合当前条件的专业</h2><p>可以取消上方某个条件，或重新选择学历和方向。</p></div>';
+    else for(const [faculty,items] of grouped){
+      const existing=[...$('results').children].find(node=>node.dataset.faculty===faculty);
+      if(existing)existing.insertAdjacentHTML('beforeend',items.map(r=>programmeCard(r,true)).join(''));
+      else $('results').insertAdjacentHTML('beforeend',section(faculty,items));
+    }
+    if(!reset)for(const [faculty,items] of groupByFaculty(shown)){
+      const existing=[...$('results').children].find(node=>node.dataset.faculty===faculty);
+      existing.querySelector('h2 small').textContent=items.length+'个专业';
+    }
+    $('loadMore').hidden=shown.length===list.length;
+    if($('detail').open)window.StudyDetail?.syncSelection();
+  };
   return reset&&window.StudyUI?window.StudyUI.transition(update,$('results')):update();
 }
-function loadMore(){const firstNew=visibleCount;visibleCount=Math.min(visibleCount+20,rows.length);render(rows,false,firstNew);document.querySelectorAll('.card')[firstNew]?.scrollIntoView({block:'nearest'})}
+function loadMore(){const firstNew=visibleCount;visibleCount=Math.min(visibleCount+20,rows.length);render(rows,false,firstNew)}
 
 async function run(e){
   e?.preventDefault();
@@ -104,7 +109,7 @@ async function run(e){
     const request=new URLSearchParams(p);request.delete('faculty');request.delete('direction');
     let found=await loadJSON('/api/search?'+request);
     if(version!==searchVersion)return;
-    found=found.filter(r=>!isOnlineStudy(r));
+    if(!isOnlineSearch(p.get('q')))found=found.filter(r=>!isOnlineStudy(r));
     if(fac)found=found.filter(r=>r.faculty===fac);
     renderBrowse(found);
     found=found.filter(r=>matchesDirections(r,directions));
@@ -142,13 +147,22 @@ $('university').addEventListener('change',()=>{refreshFaculties();run()});
 $('faculty').addEventListener('change',run);
 document.querySelectorAll('#degree,#type,#ielts,#cgpa').forEach(x=>x.addEventListener('change',run));
 $('loadMore').addEventListener('click',loadMore);
+$('mobileFilters')?.addEventListener('click',()=>{
+  const expanded=$('mobileFilters').getAttribute('aria-expanded')!=='true';
+  $('mobileFilters').setAttribute('aria-expanded',String(expanded));
+  $('browsePanel').classList.toggle('filters-visible',expanded);
+  if(expanded)$('browsePanel').querySelector('button')?.focus({preventScroll:true});
+});
+$('closeFilters')?.addEventListener('click',()=>{
+  $('browsePanel').classList.remove('filters-visible');$('mobileFilters').setAttribute('aria-expanded','false');$('mobileFilters').focus({preventScroll:true});
+});
 $('filterPanel').open=false;
 const initial=new URLSearchParams(location.search);
 [['q','q'],['university','university'],['degree','degree_level'],['type','programme_type'],['ielts','ielts_max'],['cgpa','cgpa_max'],['direction','direction']].forEach(([id,key])=>{if(initial.has(key))$(id).value=initial.get(key)});
 async function bootstrap(){
   $('count').textContent='正在加载专业资料…';
   try{
-    allRows=await loadJSON('/api/search?q=');refreshUniversities();refreshFaculties();
+    allRows=await loadJSON('/api/search?q=');refreshUniversities();if(initial.has('university'))$('university').value=initial.get('university');refreshFaculties();
     if(initial.has('faculty'))$('faculty').value=initial.get('faculty');
     window.StudyFilters?.init();ready=true;await run();
     $('dataDate').textContent=window.knowledgeDataDate?`资料更新时间：${window.knowledgeDataDate.slice(0,10)}`:'';

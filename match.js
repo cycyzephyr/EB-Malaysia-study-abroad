@@ -29,6 +29,50 @@
   }
   function matchRows(rows,profile){return rows.map(row=>evaluate(row,profile)).filter(item=>item&&(!profile.cgpa||!item.unknown.includes('CGPA'))&&(!profile.ielts||!item.unknown.includes('IELTS'))).sort((a,b)=>a.rank-b.rank||a.unknown.length-b.unknown.length||(a.row.programme_name_cn||'').localeCompare(b.row.programme_name_cn||'','zh-CN'));}
   function factTags(row){return [row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:'',row.ielts_min!=null?`IELTS ${row.ielts_min}`:''].filter(Boolean)}
+  const form=$('matchForm'),steps=[...document.querySelectorAll('.match-step')],progress=[...document.querySelectorAll('[data-go-step]')];
+  let step=0,furthestStep=0,matchVersion=0;
+  const stepTitles=['申请目标','学术背景','语言成绩'];
+  function selected(name){return form.querySelector(`input[name="${name}"]:checked`);}
+  function answerLabels(){
+    const degree={Bachelor:'本科',Master:'硕士',Doctorate:'博士'}[selected('degree')?.value]||'未选择学历';
+    const field=selected('field'),direction=field?.closest('label').querySelector('span')?.firstChild.textContent||'暂不限制';
+    const type=selected('scoreType')?.value,academic=selected('academicScore');
+    const score=type==='unknown'?'暂不确定成绩':academic?`${type==='cgpa'?'CGPA':'均分'} ${academic.closest('label').querySelector('span').textContent}`:'尚未选择成绩';
+    const language=selected('ielts')?.value;
+    return [`${degree} · ${direction}`,score,language?`IELTS ${language}`:'尚未取得 IELTS 成绩'];
+  }
+  function updateAnswers(){
+    if(!steps.length)return;
+    const labels=answerLabels();
+    ['targetAnswer','academicAnswer','languageAnswer'].forEach((id,index)=>$(id).textContent=labels[index]);
+  }
+  function setStep(index,focus=true){
+    ++matchVersion;
+    step=index;furthestStep=Math.max(furthestStep,index);
+    steps.forEach((section,i)=>section.hidden=i!==index);
+    progress.forEach((button,i)=>{button.disabled=i>furthestStep;if(i===index)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current');});
+    $('stepCounter').textContent=`0${index+1} / 03`;$('stepTitle').textContent=stepTitles[index];
+    $('matchBack').hidden=index===0;$('matchNext').hidden=index===2;form.querySelector('.match-submit').hidden=index!==2;
+    $('matchError').hidden=true;updateAnswers();
+    window.StudyUI?.transition(()=>{},steps[index]);
+    if(focus){
+      $('stepTitle').focus({preventScroll:true});
+      const rect=$('stepTitle').getBoundingClientRect();
+      if(rect.top<24||rect.bottom>innerHeight)$('stepTitle').scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+    }
+  }
+  function validateStep(index){
+    let error='',target;
+    if(index===0&&!selected('degree')){error='请先选择申请阶段。';target=form.querySelector('input[name="degree"]');}
+    if(index===1&&selected('scoreType')?.value!=='unknown'&&!selected('academicScore')){error='请选择目前的成绩，或将成绩形式改为“暂不确定”。';target=form.querySelector('#scoreQuestion input:not(:disabled)');}
+    if(error){setStep(index);$('matchError').hidden=false;$('matchError').textContent=error;target?.focus();return false;}
+    return true;
+  }
+  $('matchNext')?.addEventListener('click',()=>{if(validateStep(step))setStep(step+1);});
+  $('matchBack')?.addEventListener('click',()=>setStep(Math.max(0,step-1)));
+  progress.forEach(button=>button.addEventListener('click',()=>{const next=Number(button.dataset.goStep);if(next<=step||validateStep(step))setStep(next);}));
+  form.addEventListener('change',()=>{++matchVersion;updateAnswers();});
+  if(steps.length){form.noValidate=true;setStep(0,false);}
   let eligible=[],currentProfile,visibleCount=24;
   function render(items,profile,reset=true,animateFrom=0){
     if(reset){eligible=items.filter(x=>!x.misses.length);currentProfile=profile;visibleCount=24}
@@ -37,17 +81,25 @@
     $('matchNote').textContent=`当前显示 ${shown.length} 个。`;
     $('matchScoreNote').hidden=currentProfile.scoreType!=='average'||!currentProfile.average;
     $('matchScoreNote').textContent=currentProfile.average?`百分制均分 ${currentProfile.average} 分段，按约 ${currentProfile.cgpa}/4.0 进行初筛；最终以申请院校审核为准。`:'';
-    $('matchList').innerHTML=shown.length?shown.map(({row},i)=>{const tags=factTags(row);return `<article class="match-card${!reset&&i<animateFrom?' settled':''}" style="--reveal-delay:${Math.min(Math.max(0,i-animateFrom),6)*35}ms">${window.StudyUI?.schoolBadge(row)||`<div class="match-school">${esc(row.university_abbr||'院校')}</div>`}<div><h3>${esc(row.programme_name_cn)}</h3><p class="match-program-meta"><span>${esc(row.programme_name)}</span></p>${tags.length?`<div class="match-reasons">${tags.map(tag=>`<span>${esc(tag)}</span>`).join('')}</div>`:''}</div><button class="page-link" type="button" onclick="openDetail('${encodeURIComponent(row.file_path)}')">查看详情</button></article>`}).join(''):'<div class="empty-state"><h2>暂时没有匹配结果</h2><p>可以放宽专业方向，或返回知识库直接搜索。</p></div>';
+    const html=shown.length?(reset?shown:shown.slice(animateFrom)).map(({row})=>window.StudyUI.courseCard(row,{arriving:!reset})).join(''):'<div class="empty-state"><h2>暂时没有匹配结果</h2><p>可以放宽专业方向或修改成绩，也可以回到专业查询继续浏览。</p></div>';
+    if(reset)$('matchList').innerHTML=html;else $('matchList').insertAdjacentHTML('beforeend',html);
     $('matchMore').hidden=shown.length===eligible.length;
     $('matchMore').textContent=`显示更多（剩余 ${eligible.length-shown.length} 个）`;
-    if(reset){const update=()=>{$('matchForm').hidden=true;$('matchResults').hidden=false};return Promise.resolve(window.StudyUI?window.StudyUI.transition(update,$('matchFlow')):update()).then(()=>{const top=$('matchResults').getBoundingClientRect().top+scrollY;scrollTo({top:Math.max(0,top-24),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'})})}
+    if(reset){
+      $('answerSummary').innerHTML=answerLabels().map((label,index)=>`<button type="button" data-edit-step="${index}" aria-label="修改${esc(label)}">${esc(label)} · 修改</button>`).join('');
+      const update=()=>{$('matchForm').hidden=true;$('matchLayout').hidden=true;$('matchResults').hidden=false;};
+      return Promise.resolve(window.StudyUI?window.StudyUI.transition(update,$('matchResults')):update()).then(()=>{const top=$('matchResults').getBoundingClientRect().top+scrollY;scrollTo({top:Math.max(0,top-24),behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});$('matchTitle').focus({preventScroll:true});});
+    }
   }
   $('matchForm').addEventListener('submit',async event=>{
-    event.preventDefault();const data=new FormData(event.currentTarget),scoreType=data.get('scoreType'),score=Number(data.get('academicScore'))||0,profile={field:data.get('field'),scoreType,average:scoreType==='average'?score:0,cgpa:scoreType==='average'?averageToCgpa(score):scoreType==='cgpa'?score:0,ielts:Number(data.get('ielts'))||0};
-    const button=event.submitter;button.disabled=true;button.textContent='正在匹配…';
-    try{const rows=await window.hostedKB(`/api/search?q=&degree_level=${encodeURIComponent(data.get('degree'))}`);await render(matchRows(rows,profile),profile)}
-    catch(error){button.textContent='加载失败，请重试'}
-    finally{button.disabled=false;if(button.textContent!=='加载失败，请重试')button.textContent='查看匹配结果'}
+    event.preventDefault();
+    if(step<2){if(validateStep(step))setStep(step+1);return;}
+    if(!validateStep(0)||!validateStep(1))return;
+    const data=new FormData(event.currentTarget),scoreType=data.get('scoreType'),score=Number(data.get('academicScore'))||0,profile={field:data.get('field'),scoreType,average:scoreType==='average'?score:0,cgpa:scoreType==='average'?averageToCgpa(score):scoreType==='cgpa'?score:0,ielts:Number(data.get('ielts'))||0};
+    const version=++matchVersion,button=event.currentTarget.querySelector('.match-submit');button.disabled=true;button.textContent='正在匹配…';
+    try{const rows=await window.hostedKB(`/api/search?q=&degree_level=${encodeURIComponent(data.get('degree'))}`);if(version===matchVersion)await render(matchRows(rows,profile),profile);}
+    catch(error){if(version===matchVersion){button.textContent='重新匹配';$('matchError').hidden=false;$('matchError').textContent='资料加载失败，请检查网络后重试。';}}
+    finally{button.disabled=false;if(button.textContent!=='重新匹配')button.textContent='查看匹配结果'}
   });
   function setScoreType(type){
     $('scoreQuestion').hidden=type==='unknown';
@@ -59,6 +111,8 @@
   document.querySelectorAll('input[name="scoreType"]').forEach(input=>input.addEventListener('change',()=>setScoreType(input.value)));
   setScoreType('unknown');
   $('matchMore').addEventListener('click',()=>{const firstNew=visibleCount;visibleCount+=24;render(eligible,currentProfile,false,firstNew)});
-  $('editAnswers').addEventListener('click',()=>{const update=()=>{$('matchResults').hidden=true;$('matchForm').hidden=false};Promise.resolve(window.StudyUI?window.StudyUI.transition(update,$('matchFlow')):update()).then(()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}))});
+  function editAnswers(index=0){const update=()=>{$('matchResults').hidden=true;$('matchForm').hidden=false;$('matchLayout').hidden=false;setStep(index);};Promise.resolve(window.StudyUI?window.StudyUI.transition(update,$('matchForm')):update()).then(()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));}
+  $('editAnswers').addEventListener('click',()=>editAnswers());
+  $('answerSummary')?.addEventListener('click',event=>{const button=event.target.closest('[data-edit-step]');if(button)editAnswers(Number(button.dataset.editStep));});
   globalThis.StudyMatcher={evaluate,matchRows,averageToCgpa,factTags};
 })();
