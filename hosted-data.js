@@ -4,6 +4,8 @@
   const details = new Map();
   const detailBundles = new Map();
   const version = new URL(document.currentScript.src).searchParams.get('v');
+  const schoolURL = new URL('./schools-data.json', document.currentScript.src);
+  if (version) schoolURL.searchParams.set('v', version);
   async function json(path) {
     const encoded = embeddedData[path.split('/').pop()];
     if (!encoded) throw new Error('资料文件不存在，请刷新页面。');
@@ -12,7 +14,10 @@
     return JSON.parse(await new Response(stream).text());
   }
   function catalog() {
-    if (!catalogPromise) catalogPromise = json('/data/search-index.json').then(data => {
+    if (!catalogPromise) catalogPromise = json('/data/search-index.json').then(async data => {
+      const schoolResponse = await fetch(schoolURL);
+      if (!schoolResponse.ok) throw new Error('学校资料加载失败，请刷新页面重试。');
+      data.schools = (await schoolResponse.json()).schools;
       window.knowledgeDataDate = data.exported_at;
       return data;
     }).catch(error => { catalogPromise = null; throw error; });
@@ -22,6 +27,7 @@
     if (!answersPromise) answersPromise = json('/data/field-answers.json').catch(error => { answersPromise = null; throw error; });
     return answersPromise;
   }
+  window.knowledgeQueryPlan = async (query, filters = {}) => parseKnowledgeQuery(await catalog(), query, filters);
   window.hostedKB = async url => {
     const parsed = new URL(url, location.origin), data = await catalog();
     if (parsed.pathname === '/api/search') {

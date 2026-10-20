@@ -3,6 +3,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const typeZh={Coursework:'授课型',Research:'研究型','Mixed Mode':'混合型',Clinical:'临床型','待核实':'官网未标明'};
 const degreeZh={'Language Course':'语言课程',Foundation:'预科课程',Diploma:'文凭课程',Certificate:'证书课程',Bachelor:'本科',Master:'硕士',Doctorate:'博士','Postgraduate Diploma':'研究生文凭','Postgraduate Certificate':'研究生证书'};
 let allRows=[],rows=[],searchVersion=0,ready=false,visibleCount=20;
+let queryPlan=null;
 
 const programmeDirections=[
   {id:'computing',name:'计算机与数据',hint:'计算机 · AI · 数据科学',words:['computer','computing','software','data','artificial intelligence','information technology','cybersecurity','计算机','软件','数据','人工智能','信息技术','网络安全']},
@@ -62,7 +63,13 @@ function renderBrowse(base=browseBase){
 }
 window.StudyBrowse={matchesDirection,matchesDirections,selectedDirections,directions:programmeDirections};
 
-function directoryRows(){return allRows.filter(r=>isOnlineSearch($('q').value)||!isOnlineStudy(r))}
+function directoryRows(){return allRows.filter(r=>showOnline()||!isOnlineStudy(r))}
+function showOnline(){return queryPlan?.query===$('q').value?queryPlan.online:isOnlineSearch($('q').value)}
+function renderQueryPlan(plan){
+  const panel=$('searchInterpretation');if(!panel)return;
+  panel.hidden=!plan?.parts.length&&!plan?.errors.length;
+  panel.innerHTML=plan?`${plan.parts.length?`<div class="query-conditions"><span>已识别</span>${plan.parts.map((part,index)=>`<button class="filter-chip" type="button" data-query-part="${index}" aria-label="取消${esc(part.label)}">${esc(part.label)}<span aria-hidden="true">×</span></button>`).join('')}</div>`:''}${plan.errors.map(error=>`<p class="query-conflict" role="status">${esc(error)}</p>`).join('')}${plan.parts.some(part=>part.kind==='ielts_min'||part.kind==='cgpa_min')?'<p class="query-note">成绩按已公布的最低要求初筛，附加条件请查看专业详情。</p>':''}`:'';
+}
 
 function refreshUniversities(){const current=$("university").value,schools=[...new Map(directoryRows().map(r=>[r.university_abbr,r.university_cn||r.university_abbr])).entries()].filter(([abbr])=>abbr).sort((a,b)=>a[1].localeCompare(b[1],'zh-CN'));$("university").innerHTML='<option value="">全部学校</option>'+schools.map(([abbr,name])=>`<option value="${esc(abbr)}">${esc(name)} · ${esc(abbr)}</option>`).join('');if(schools.some(([abbr])=>abbr===current))$("university").value=current}
 
@@ -74,17 +81,20 @@ function programmeCard(r,arriving=false){
 }
 function render(list,reset=true,animateFrom=0){
   rows=list;if(reset)visibleCount=20;
-  const shown=[...groupByFaculty(list).values()].flat().slice(0,visibleCount),grouped=groupByFaculty(reset?shown:shown.slice(animateFrom));
+  const ranked=Boolean($('q').value.trim());
+  const shown=(ranked?list:[...groupByFaculty(list).values()].flat()).slice(0,visibleCount);
+  const group=items=>ranked?new Map(items.length?[['按相关度排序',items]]:[]):groupByFaculty(items);
+  const grouped=group(reset?shown:shown.slice(animateFrom));
   const section=(faculty,items)=>`<section class=faculty data-faculty="${esc(faculty)}"><h2>${esc(faculty)} <small>${items.length}个专业</small></h2>${items.map(r=>programmeCard(r,!reset)).join('')}</section>`;
   const update=()=>{
     $('count').textContent=`找到 ${list.length} 个专业，当前显示 ${shown.length} 个`;
-    if(reset)$('results').innerHTML=[...grouped].map(([faculty,items])=>section(faculty,items)).join('')||'<div class="empty-state"><h2>没有找到符合当前条件的专业</h2><p>可以取消上方某个条件，或重新选择学历和方向。</p></div>';
+    if(reset)$('results').innerHTML=[...grouped].map(([faculty,items])=>section(faculty,items)).join('')||`<div class="empty-state"><h2>没有找到符合当前条件的专业</h2><p>${queryPlan?.errors.length?'请按上方提示调整冲突或未识别的条件。':'可以取消某个已识别条件或筛选条件，或换一个专业关键词。'}</p></div>`;
     else for(const [faculty,items] of grouped){
       const existing=[...$('results').children].find(node=>node.dataset.faculty===faculty);
       if(existing)existing.insertAdjacentHTML('beforeend',items.map(r=>programmeCard(r,true)).join(''));
       else $('results').insertAdjacentHTML('beforeend',section(faculty,items));
     }
-    if(!reset)for(const [faculty,items] of groupByFaculty(shown)){
+    if(!reset)for(const [faculty,items] of group(shown)){
       const existing=[...$('results').children].find(node=>node.dataset.faculty===faculty);
       existing.querySelector('h2 small').textContent=items.length+'个专业';
     }
@@ -103,13 +113,16 @@ async function run(e){
   const fac=$('faculty').value;if(fac)p.set('faculty',fac);
   const directions=selectedDirections();if(directions.length)p.set('direction',directions.join(','));
   renderBrowse();
-  if(![...p.values()].some(Boolean)){renderBrowse(directoryRows());await render(directoryRows());if(version===searchVersion)history.replaceState(null,'',location.pathname);return}
+  if(![...p.values()].some(Boolean)){queryPlan=null;renderQueryPlan(null);renderBrowse(directoryRows());await render(directoryRows());if(version===searchVersion)history.replaceState(null,'',location.pathname);return}
   $('count').textContent='正在查询…';
   try {
     const request=new URLSearchParams(p);request.delete('faculty');request.delete('direction');
+    const plan=window.knowledgeQueryPlan?await window.knowledgeQueryPlan(p.get('q'),Object.fromEntries(request)):null;
+    if(version!==searchVersion)return;
+    queryPlan=plan;renderQueryPlan(plan);
     let found=await loadJSON('/api/search?'+request);
     if(version!==searchVersion)return;
-    if(!isOnlineSearch(p.get('q')))found=found.filter(r=>!isOnlineStudy(r));
+    if(!(plan?plan.online:isOnlineSearch(p.get('q'))))found=found.filter(r=>!isOnlineStudy(r));
     if(fac)found=found.filter(r=>r.faculty===fac);
     renderBrowse(found);
     found=found.filter(r=>matchesDirections(r,directions));
@@ -131,6 +144,13 @@ async function loadJSON(url){
   throw lastError;
 }
 $('search').addEventListener('submit',run);
+$('q').addEventListener('search',run);
+$('searchInterpretation')?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-query-part]');if(!button||queryPlan?.query!==$('q').value)return;
+  const part=queryPlan.parts[Number(button.dataset.queryPart)];if(!part)return;
+  $('q').value=($('q').value.slice(0,part.start)+' '+$('q').value.slice(part.end)).replace(/\s+/g,' ').trim();
+  run();
+});
 $('degreeChoices').addEventListener('click',event=>{const button=event.target.closest('[data-degree]');if(button){$('degree').value=button.dataset.degree;run()}});
 $('otherDegree').addEventListener('change',()=>{$('degree').value=$('otherDegree').value;run()});
 $('directionChoices').addEventListener('click',event=>{const button=event.target.closest('[data-direction]');if(button){const ids=selectedDirections(),id=button.dataset.direction;$('direction').value=(ids.includes(id)?ids.filter(value=>value!==id):[...ids,id]).join(',');run()}});
