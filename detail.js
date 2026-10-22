@@ -30,7 +30,13 @@ function curriculumDetails(r){
   }).join('');
   const pages=c.source_pdf_pages,source=c.source_url+(pages?`#page=${pages[0]}`:'');
   const pageLabel=pages?.length===2?`${pages[0]}–${pages[1]}`:pages?.join('、');
-  return `<section class="requirements curriculum"><h3>${esc(heading)}</h3><p>${esc(overview)}</p>${c.credit_structure?`<p>${esc(c.credit_structure)}</p>`:''}${(c.notes||[]).map(note=>`<p class=source>${esc(note)}</p>`).join('')}${groups}${c.selection_notes?.length?`<details><summary>原文选课说明</summary>${c.selection_notes.map(note=>`<p class=source>${esc(note)}</p>`).join('')}</details>`:''}<p class=source>课程来源：<a href="${esc(source)}" target=_blank rel=noopener>${esc(c.source_title)}</a>${pages?` · PDF 第 ${esc(pageLabel)} 页`:''}${c.recorded_at?` · 读取日期：${esc(c.recorded_at)}`:''}</p></section>`;
+  const extraSources=[...(c.sources||[]),...(c.additional_sources||[]),...(c.supplementary_source_urls||[]).map(url=>({url}))];
+  const seenSources=new Set([c.source_url]);
+  const extra=extraSources.filter(item=>{
+    if(!/^https?:\/\//i.test(item.url)||seenSources.has(item.url))return false;
+    seenSources.add(item.url);return true;
+  }).map(item=>`<p class=source>补充课程来源：<a href="${esc(item.url+(item.pdf_pages?.length?'#page='+item.pdf_pages[0]:''))}" target=_blank rel=noopener>${esc(item.title||'院校官方补充资料')}</a>${item.pdf_pages?.length?' · PDF 第 '+esc(item.pdf_pages.join('、'))+' 页':''}</p>`).join('');
+  return `<section class="requirements curriculum"><h3>${esc(heading)}</h3><p>${esc(overview)}</p>${c.credit_structure?`<p>${esc(c.credit_structure)}</p>`:''}${(c.notes||[]).map(note=>`<p class=source>${esc(note)}</p>`).join('')}${groups}${c.selection_notes?.length?`<details><summary>原文选课说明</summary>${c.selection_notes.map(note=>`<p class=source>${esc(note)}</p>`).join('')}</details>`:''}<p class=source>课程来源：<a href="${esc(source)}" target=_blank rel=noopener>${esc(c.source_title)}</a>${pages?` · PDF 第 ${esc(pageLabel)} 页`:''}${c.recorded_at?` · 读取日期：${esc(c.recorded_at)}`:''}</p>${extra}</section>`;
 }
 
 
