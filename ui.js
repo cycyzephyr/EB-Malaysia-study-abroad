@@ -1,5 +1,5 @@
 (() => {
-  const schools = new Set(['CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM']);
+  const schools = new Set(['SUNWAY','CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const version = document.currentScript?.src?.split('?')[1] || '';
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,7 +29,7 @@
   }
   function schoolBadge(row) {
     const abbr = row.university_abbr || '院校', name = row.university_cn || row.university || abbr;
-    const extension = {CITY:'png',TAYLORS:'svg'}[abbr] || 'webp';
+    const extension = {CITY:'png',SUNWAY:'png',TAYLORS:'svg'}[abbr] || 'webp';
     return `<div class="match-school" title="${esc(name)}">${schools.has(abbr)?`<img class="school-logo" src="./assets/school-${abbr}.${extension}${version?'?'+version:''}" alt="${esc(name)}校标" width="72" height="48" loading="lazy" decoding="async">`:`<span>${esc(name)}</span>`}</div>`;
   }
   function courseCard(row,{query=false,arriving=false}={}) {
@@ -39,7 +39,7 @@
     const duration=row.duration_min_months!=null?`${row.duration_max_months==null?'至少 ':''}${row.duration_min_months}${row.duration_max_months!=null&&row.duration_max_months!==row.duration_min_months?'–'+row.duration_max_months:''} 个月`:'';
     const fee=row.tuition_fee_amount!=null?`${row.tuition_fee_currency==='MYR'?'RM':row.tuition_fee_currency||'RM'} ${Number(row.tuition_fee_amount).toLocaleString()}${{per_year:' / 年',per_semester:' / 学期',total:' / 全程',from_total:' 起 / 全程',minimum_total:' / 最低学制参考总额'}[row.tuition_fee_scope]||''}`:row.fee_preview;
     const facts=[['语言',row.ielts_min!=null?`IELTS ${row.ielts_min}`:'见具体要求'],['学术',row.academic_preview_cn||(row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:'见具体要求')],['学制',duration]].filter(([,value])=>value);
-    return `<article class="course-card match-card${query?' query-card':''}${arriving?' arriving':''}" data-programme="${esc(file)}"><div class="course-school">${schoolBadge(row)}<div><p class="school-name">${esc(row.university_cn||row.university||row.university_abbr)}</p><span class="course-degree">${esc([degree,type].filter(Boolean).join(' · '))}</span></div></div><div class="programme-content"><h3><button class="programme-title" type="button" onclick="openDetail('${file}')">${esc(row.programme_name_cn||row.programme_name)}</button></h3><p class="match-program-meta">${esc(row.programme_name)}</p></div><dl class="course-facts">${facts.map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${row.requested_field&&row.answer?`<div class="answer"><h4>${esc(row.requested_field)}</h4>${esc(row.answer)}</div>`:''}<div class="course-footer"><div>${fee?`<span class="fee-label">${row.tuition_fee_year?esc(row.tuition_fee_year)+'年参考费用':'参考费用'}</span><p class="course-fee">${esc(fee)}</p>`:'<span class="fee-label">完整条件与费用见详情</span>'}</div><button class="course-open secondary" type="button" onclick="openDetail('${file}')">查看详情</button></div></article>`;
+    return `<article class="course-card match-card${query?' query-card':''}${arriving?' arriving':''}" data-programme="${esc(file)}"><div class="course-school">${schoolBadge(row)}<div><p class="school-name">${esc(row.university_cn||row.university||row.university_abbr)}</p><span class="course-degree">${esc([degree,type].filter(Boolean).join(' · '))}</span></div></div><div class="programme-content"><h3><button class="programme-title" type="button" onclick="openDetail('${file}')">${esc(row.programme_name_cn||row.programme_name)}</button></h3><p class="match-program-meta">${esc(row.programme_name)}</p></div><dl class="course-facts">${facts.map(([label,value])=>`<div><dt>${label}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${row.requested_field&&row.answer?`<div class="answer"><h4>${esc(row.requested_field)}</h4>${esc(row.answer)}</div>`:''}<div class="course-footer"><div>${fee?`<span class="fee-label">${row.tuition_fee_year?esc(row.tuition_fee_year)+'年参考费用':'参考费用'}</span><p class="course-fee">${esc(fee)}</p>`:'<span class="fee-label">完整条件与费用见详情</span>'}</div><div class="course-actions">${window.StudyCompare?.button(row)||''}<button class="course-open secondary" type="button" onclick="openDetail('${file}')">查看详情</button></div></div></article>`;
   }
   function present(dialog,wasOpen=false){
     const panel=dialog.classList?.contains('detail-panel');

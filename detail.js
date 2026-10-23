@@ -22,7 +22,7 @@ function durationText(r){return r.duration_min_months!=null?`${r.duration_max_mo
 function curriculumDetails(r){
   const c=r.curriculum;if(!c)return '';
   const heading='课程与培养内容';
-  const itemLabel=c.content_type==='transfer_structure'?'可衔接专业方向':c.content_type==='research_structure'?'研究或培养内容':c.content_type==='clinical_structure'?'课程与临床培养内容':'课程名称';
+  const itemLabel=c.content_type==='transfer_structure'?'可衔接专业方向':c.content_type==='research_structure'?'研究或培养内容':c.content_type==='clinical_structure'?'课程与临床培养内容':c.content_type==='partial_courses'?'课程名称或学习方向（部分资料）':'课程名称';
   const overview=[c.academic_year?`${c.academic_year} 学年手册`:c.source_label||'官方课程结构',c.duration_years!=null?`${c.duration_years} 年`:'',c.semesters!=null?`${c.semesters} 个学期`:'',c.total_credits!=null?`毕业 ${c.total_credits} 学分`:c.maximum_credits!=null?`最多 ${c.maximum_credits} 学分`:''].filter(Boolean).join(' · ');
   const groups=c.groups.map((group,index)=>{
     const codes=group.courses.some(course=>course.code),credits=group.courses.some(course=>course.credits!=null);
@@ -72,7 +72,7 @@ async function openDetail(encoded){
   try{r=await loadJSON('/api/programme?file='+encoded)}
   catch(error){if(version===detailVersion)$('detailBody').innerHTML=`<div class=empty-state><h2>详情暂时加载失败</h2><p>请检查网络后重试。</p><button type=button onclick="openDetail('${esc(String(encoded).replace(/'/g,'%27'))}')">重新加载</button></div>`;return}
   if(version!==detailVersion)return;
-  const update=()=>{$('detailBody').innerHTML=`<div class="detail-school">${window.StudyUI?.schoolBadge(r)||''}<div><p>${esc(r.university_cn)}<small>${esc(r.faculty_cn||r.faculty)}</small></p></div></div><h2 id="detailTitle">${esc(r.programme_name_cn)}</h2><p class=en>${esc(r.programme_name)}</p>${facts(r,false)}${detailSummary(r)}${curriculumDetails(r)}<div class=actions><button class=secondary onclick="copyResult('${encoded}')">复制摘要</button></div><p class=source>官方来源：<a href="${esc(r.source_url)}" target=_blank rel=noopener>查看院校官网</a></p>`;};
+  const update=()=>{$('detailBody').innerHTML=`<div class="detail-school">${window.StudyUI?.schoolBadge(r)||''}<div><p>${esc(r.university_cn)}<small>${esc(r.faculty_cn||r.faculty)}</small></p></div></div><h2 id="detailTitle">${esc(r.programme_name_cn)}</h2><p class=en>${esc(r.programme_name)}</p>${facts(r,false)}${detailSummary(r)}${curriculumDetails(r)}<div class=actions>${window.StudyCompare?.button(r)||''}<button class=secondary onclick="copyResult('${encoded}')">复制摘要</button></div><p class=source>官方来源：<a href="${esc(r.source_url)}" target=_blank rel=noopener>查看院校官网</a></p>`;};
   if(window.StudyUI)window.StudyUI.transition(update,$('detailBody'));else update();
 }
 async function copyResult(encoded){
@@ -142,5 +142,5 @@ if(typeof matchMedia==='function')matchMedia('(min-width:1100px)').addEventListe
 
 window.openDetail=openDetail;
 window.copyResult=copyResult;
-window.StudyDetail={syncSelection:()=>selectDetail(currentEncoded)};
+window.StudyDetail={syncSelection:()=>selectDetail(currentEncoded),curriculumDetails};
 })();
