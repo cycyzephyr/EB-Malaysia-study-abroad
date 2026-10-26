@@ -77,7 +77,7 @@
     return `${status?`<p class="compare-caveat">${status}</p>`:''}<details class="compare-curriculum"><summary>查看课程与培养内容</summary>${window.StudyDetail.curriculumDetails(row)}</details>`;
   }
   const fields = [
-    ['学历与培养类型', r => plain([{'Language Course':'语言课程',Foundation:'预科',Diploma:'文凭',Bachelor:'本科',Master:'硕士',Doctorate:'博士','Postgraduate Diploma':'研究生文凭','Postgraduate Certificate':'研究生证书',Certificate:'证书'}[r.degree_level] || r.degree_level, {Coursework:'授课型',Research:'研究型','Mixed Mode':'混合型',Clinical:'临床型'}[r.programme_type] || r.programme_type].filter(Boolean).join(' · '))],
+    ['学历与培养类型', r => plain([{'Language Course':'语言课程',Foundation:'预科',Diploma:'文凭',Bachelor:'本科',Master:'硕士',Doctorate:'博士','Postgraduate Diploma':'研究生文凭','Postgraduate Certificate':'研究生证书',Certificate:'证书'}[r.degree_level] || r.degree_level, {Coursework:'授课型',Research:'研究型','Mixed Mode':'混合型',Clinical:'临床型'}[r.programme_type] || r.programme_type || (r.programme_types || []).map(type => ({Coursework:'授课型',Research:'研究型','Mixed Mode':'混合型',Clinical:'临床型'}[type] || type)).join('／')].filter(Boolean).join(' · '))],
     ['学习方式', r => plain(window.isOnlineStudy?.(r) ? '在线／远程' : ({'Full-time':'全日制','Part-time':'非全日制','On Campus':'校园授课','Full-time / Part-time':'全日制／非全日制','Online':'在线／远程','Research (mode not specified)':'资料未注明具体学习方式','待核实':''}[r.study_mode] ?? r.study_mode))],
     ['学院／方向', r => plain(r.faculty_cn || r.faculty || r.field)],
     ['学制', r => requirement(r, 'duration', r.duration_requirement_cn)],
@@ -87,7 +87,7 @@
     ['语言条件', r => requirement(r, 'language', r.language_requirement_cn || (r.ielts_min != null ? `IELTS ${r.ielts_min}` : ''))],
     ['工作经验', r => requirement(r, 'experience', r.experience_requirement_cn)],
     ['参考费用', fee],
-    ['费用说明', r => requirement(r, 'fee', r.tuition_fee_requirement_cn)],
+    ['费用说明', r => requirement(r, 'fee', r.tuition_fee_requirement_cn || r.fee_preview)],
     ['课程与培养', curriculum],
     ['院校官网', r => sourceLink(r.source_url, '查看院校官网') || '未提供可用官网链接']
   ];

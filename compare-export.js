@@ -72,7 +72,7 @@
     const text = textFromHTML(field[1](row));
     // Fee context is inseparable from the quote, even in the brief preset.
     if (field[0] === '参考费用') {
-      const note = row.summaries?.fee || row.tuition_fee_requirement_cn;
+      const note = row.summaries?.fee || row.tuition_fee_requirement_cn || row.fee_preview;
       return [text, note && note !== text ? note : ''].filter(Boolean).join('\n');
     }
     return briefText(text, includeOriginal);
@@ -217,5 +217,5 @@
     }
     $('compareExportDialog').showModal(); refresh();
   }
-  window.StudyCompareExport = {open, _test:{wrap, paginate, curriculumText, briefText}};
+  window.StudyCompareExport = {open, _test:{cellText,wrap, paginate, curriculumText, briefText}};
 })();

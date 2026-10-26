@@ -135,8 +135,9 @@
       for (const [kind,field] of [['university','university_abbr'],['degree_level','degree_level'],['programme_type','programme_type'],['school_type','school_type'],['online','online']]) {
         const value=kind==='school_type'?schoolTypes.get(item.university_abbr)?.type:kind==='online'?isOnlineStudy(item):item[field];
         const positive=plan.parts.filter(part=>part.kind===kind&&!part.exclude), negative=plan.parts.filter(part=>part.kind===kind&&part.exclude);
-        if (positive.length&&!positive.some(part=>part.value===value) || negative.some(part=>part.value===value)) return false;
-        if (filters[kind]&&value!==filters[kind]) return false;
+        const matches = candidate => kind==='programme_type' ? (item.programme_types?.length ? item.programme_types : [value]).includes(candidate) : candidate===value;
+        if (positive.length&&!positive.some(part=>matches(part.value)) || negative.some(part=>matches(part.value))) return false;
+        if (filters[kind]&&!matches(filters[kind])) return false;
       }
       for (const part of plan.parts.filter(part=>part.kind==='ielts_min'||part.kind==='cgpa_min')) {
         const value=item[part.kind];
@@ -144,7 +145,15 @@
       }
       for (const field of ['field','study_mode']) if (filters[field]&&!String(item[field]||'').toLowerCase().includes(filters[field].toLowerCase())) return false;
       for (const [filter,field] of [['ielts_max','ielts_min'],['cgpa_max','cgpa_min'],['duration_max_months','duration_min_months'],['fee_max','tuition_fee_amount']]) {
-        if (filters[filter]!=null&&filters[filter]!==''&&(item[field]==null||item[field]>Number(filters[filter]))) return false;
+        if (filters[filter]==null||filters[filter]==='') continue;
+        let value=item[field];
+        if (filter==='duration_max_months' && item.duration_options?.length) {
+          const types=plan.parts.filter(part=>part.kind==='programme_type'&&!part.exclude).map(part=>part.value);
+          if (filters.programme_type) types.push(filters.programme_type);
+          const options=item.duration_options.filter(option=>!types.length||types.some(type=>option.programme_types.includes(type)));
+          value=options.length?Math.min(...options.map(option=>option.min_months)):undefined;
+        }
+        if (value==null||value>Number(filters[filter])) return false;
       }
       return true;
     });
