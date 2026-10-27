@@ -67,6 +67,7 @@
     return `${plain(text)}${links.length?`<div class="compare-sources">${links.join(' · ')}</div>`:''}`;
   }
   function fee(row) {
+    if (row.fee_source_kind === 'supplied_chart') return `${plain(row.fee_preview)}<div class="compare-sources"><a href="${esc(row.fee_source_url)}" target="_blank" rel="noopener">查看参考图</a></div>`;
     const scope = {total:'全程',from_total:'全程起价',per_year:'每年',per_semester:'每学期',minimum_total:'最低学制参考总额'}[row.tuition_fee_scope];
     if (row.tuition_fee_amount != null && row.tuition_fee_currency && scope) return `${esc(row.tuition_fee_currency === 'MYR' ? 'RM' : row.tuition_fee_currency)} ${esc(Number(row.tuition_fee_amount).toLocaleString('zh-CN'))} / ${scope}${row.tuition_fee_year?`<small>${esc(row.tuition_fee_year)} 年参考费用</small>`:''}`;
     return plain(row.fee_preview || row.summaries?.fee);
