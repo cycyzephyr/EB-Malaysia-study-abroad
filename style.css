@@ -37,3 +37,5 @@ body.compare-active main{padding-bottom:190px}body.compare-active #detailBody{pa
  .course-fact-more{margin-top:6px;font-size:12px;font-weight:400}.course-fact-more summary{color:var(--accent);cursor:pointer;font-weight:600}.course-fact-more p{margin:6px 0 0;font-size:12px;font-weight:400;line-height:1.5;white-space:pre-wrap}
 .fee-source{display:block;margin-top:3px;color:var(--accent);font-size:12px;text-decoration:none}.fee-source:hover{text-decoration:underline}
 
+/* Keep the established card grid; long requirements expand in place. */
+.query-card .course-fact-preview{display:block}.query-card .course-fact-preview.is-truncated{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.query-card dd:has(.course-fact-more[open])>.course-fact-preview{display:none}

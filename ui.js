@@ -1,5 +1,5 @@
 (() => {
-  const schools = new Set(['SUNWAY','CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM','HELP','UPSI','UUM']);
+  const schools = new Set(['SUNWAY','CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM','HELP','UPSI','UUM','UTAR','LUC']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const version = document.currentScript?.src?.split('?')[1] || '';
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,7 +29,7 @@
   }
   function schoolBadge(row) {
     const abbr = row.university_abbr || '院校', name = row.university_cn || row.university || abbr;
-    const extension = {CITY:'png',SUNWAY:'png',TAYLORS:'svg',HELP:'png',UPSI:'png',UUM:'jpg'}[abbr] || 'webp';
+    const extension = {CITY:'png',TAYLORS:'svg',HELP:'png',UPSI:'png',UUM:'jpg',UTAR:'jpg'}[abbr] || 'webp';
     const logo = `./assets/school-${abbr}.${extension}${version?'?'+version:''}`;
     return `<div class="match-school" title="${esc(name)}">${schools.has(abbr)?`<img class="school-logo" src="${esc(logo)}" alt="${esc(name)}校徽" width="72" height="48" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(abbr)}',ariaLabel:'${esc(name)}校徽暂不可用'}))">`:`<span>${esc(name)}</span>`}</div>`;
   }
@@ -53,7 +53,11 @@
       return `${prefix.slice(0,boundary>=limit*.55?boundary+1:limit-1).trimEnd()}…`;
     };
     const cardRequirementLimit=row.university_abbr==='CITY'?56:110;
-    const academicText=compact(clean(row.academic_preview_cn)||(row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:fullAcademic),cardRequirementLimit);
+    const firstRequirement=text=>compact(clean(text).replace(/^(?:(?:官网国际学生要求：|国际学生：|不同前置学历分列要求：|不同资格路径分别审核：|分别适用：)\s*)+/, '').split(/[；;。\n]/)[0],56);
+    const academicText=query?(row.cgpa_min!=null?`CGPA ≥ ${row.cgpa_min}`:firstRequirement(fullAcademic||row.academic_preview_cn)):compact(clean(row.academic_preview_cn)||(row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:fullAcademic),cardRequirementLimit);
+    const tableIelts=row.university_abbr==='TAYLORS'&&fullLanguage.match(/原2026\.03\.05语言表[^：]*：IELTS\s*(\d(?:\.\d)?)/i);
+    const ieltsClause=fullLanguage.split(/[；;。\n]/).find(text=>/IELTS\s*\d/i.test(text));
+    const languageText=row.ielts_min!=null?`IELTS ${row.ielts_min}`:query?(tableIelts?`IELTS ${tableIelts[1]}（2026语言表）`:ieltsClause?firstRequirement(ieltsClause):fullLanguage?'雅思要求见详情':''):compact(fullLanguage,cardRequirementLimit);
     const coursePreview=row.course_preview_cn;
     const courseFacts=[
       ['课程示例',coursePreview],
@@ -61,8 +65,8 @@
       ['学制参考',duration]
     ];
     const facts=row.university_abbr==='UUM'?(window.UUMGuide?.quickFacts(row)||courseFacts).filter(([,value])=>value).slice(0,3):[
-      ['语言',row.ielts_min!=null?`IELTS ${row.ielts_min}`:compact(fullLanguage,cardRequirementLimit),fullLanguage],
-      ['学术',academicText,fullAcademic],
+      ['语言',languageText,fullLanguage],
+      ['学术',academicText,query?fullAcademic||clean(row.academic_preview_cn):fullAcademic],
       ['学制',duration,''],
       ['入学月份',intake,'']
     ].filter(([,value])=>value).slice(0,3);
@@ -73,7 +77,7 @@
     const uumFeeUrl=uumChart?row.fee_source_url:uumBrochure||uumFeeSheet||(['Master','Doctorate','Postgraduate Diploma'].includes(row.degree_level)?'https://www.uum.edu.my/admissions/fees/postgraduate':'https://www.uum.edu.my/admissions/application-guidelines/undergraduate-international');
     const uumFeeLabel=uumChart?'查看参考图':uumBrochure?'查看官网简章':uumFeeSheet?'Sintok · 官网收费表':'查看官网收费说明';
     const uumFeeTitle=uumChart?'本科图表参考学费':uumBrochure?'UUMKL国际生合计':uumFeeSheet?'国际生预计合计':'国际生费用合计';
-    return `<article class="course-card match-card${query?' query-card':''}${arriving?' arriving':''}" data-programme="${esc(file)}"><div class="course-school">${schoolBadge(row)}<div><p class="school-name">${esc(row.university_cn||row.university||row.university_abbr)}</p><span class="course-degree">${esc([degree,type].filter(Boolean).join(' · '))}</span></div></div><div class="programme-content"><h3><button class="programme-title" type="button" onclick="openDetail('${file}')">${esc(row.programme_name_cn||row.programme_name)}</button></h3><p class="match-program-meta">${esc(row.programme_name)}</p></div><dl class="course-facts facts-${facts.length}">${facts.map(([label,value,full])=>`<div><dt>${label}</dt><dd>${esc(value)}${full&&full!==value?`<details class="course-fact-more"><summary>展开完整要求</summary><p>${esc(full)}</p></details>`:''}</dd></div>`).join('')}</dl>${row.requested_field&&row.answer?`<div class="answer"><h4>${esc(row.requested_field)}</h4>${esc(row.answer)}</div>`:''}<div class="course-footer"><div>${displayFee?`<span class="fee-label">${esc(row.university_abbr==='UUM'?uumFeeTitle:feeLabel)}</span><p class="course-fee">${esc(displayFee)}</p>${row.university_abbr==='UUM'?`<a class="fee-source" href="${esc(uumFeeUrl)}" target="_blank" rel="noopener">${uumFeeLabel}</a>`:''}${row.university_abbr==='CITY'?'<a class="fee-source" href="https://city.edu.my/admission-scholarships/international-students/" target="_blank" rel="noopener">查看官网收费说明</a>':''}`:''}</div><div class="course-actions">${window.StudyCompare?.button(row)||''}<button class="course-open secondary" type="button" onclick="openDetail('${file}')">查看详情</button></div></div></article>`;
+    return `<article class="course-card match-card${query?' query-card':''}${arriving?' arriving':''}" data-programme="${esc(file)}"><div class="course-school">${schoolBadge(row)}<div><p class="school-name">${esc(row.university_cn||row.university||row.university_abbr)}</p><span class="course-degree">${esc([degree,type].filter(Boolean).join(' · '))}</span></div></div><div class="programme-content"><h3><button class="programme-title" type="button" onclick="openDetail('${file}')">${esc(row.programme_name_cn||row.programme_name)}</button></h3><p class="match-program-meta">${esc(row.programme_name)}</p></div><dl class="course-facts facts-${facts.length}">${facts.map(([label,value,full])=>{const expandable=full&&(full!==value||query&&full.length>48);return `<div><dt>${label}</dt><dd>${query?`<span class="course-fact-preview${expandable?' is-truncated':''}">${esc(value)}</span>`:esc(value)}${expandable?`<details class="course-fact-more"><summary>${query?'展开详情':'展开完整要求'}</summary><p>${esc(full)}</p></details>`:''}</dd></div>`}).join('')}</dl>${row.requested_field&&row.answer?`<div class="answer"><h4>${esc(row.requested_field)}</h4>${esc(row.answer)}</div>`:''}<div class="course-footer"><div>${displayFee?`<span class="fee-label">${esc(row.university_abbr==='UUM'?uumFeeTitle:feeLabel)}</span><p class="course-fee">${esc(displayFee)}</p>${row.university_abbr==='UUM'?`<a class="fee-source" href="${esc(uumFeeUrl)}" target="_blank" rel="noopener">${uumFeeLabel}</a>`:''}${row.university_abbr==='CITY'?'<a class="fee-source" href="https://city.edu.my/admission-scholarships/international-students/" target="_blank" rel="noopener">查看官网收费说明</a>':''}`:''}</div><div class="course-actions">${window.StudyCompare?.button(row)||''}<button class="course-open secondary" type="button" onclick="openDetail('${file}')">查看详情</button></div></div></article>`;
   }
   function present(dialog,wasOpen=false){
     const panel=dialog.classList?.contains('detail-panel');
