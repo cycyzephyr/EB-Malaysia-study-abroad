@@ -85,11 +85,17 @@
     }
     const onlinePattern = new RegExp(negation+'(?:'+onlineTerms.source+')','gi');
     for (const match of [...remaining.matchAll(onlinePattern)]) add(match.index,match[0].length,{kind:'online',value:true,exclude:true,label:'排除：在线授课'});
+    if (/(?:雅思|ielts|cgpa|gpa|绩点)\s*(?:无|没有|不需要|无需|免|免除|不要求)(?:要求|成绩|考试)?|(?:免除?|无需|不需要|没有|无)\s*(?:雅思|ielts|cgpa|gpa|绩点)/i.test(remaining)) {
+      errors.push('暂不支持按免语言或无成绩要求筛选，请查看专业详情和学校的具体豁免条件。');
+    }
     for (const [kind,label,max] of [['ielts_min','IELTS',9],['cgpa_min','CGPA',4]]) {
       const name = kind==='ielts_min'?'(?:雅思|ielts)':'(?:cgpa|gpa|绩点)';
-      const numeric = new RegExp(name+'\\s*(?:要求|成绩|分数)?\\s*(不高于|不超过|不低于|至少|至多|低于|高于|小于|大于|超过|达到|为|是|有|≤|≥|<=|>=|<|>|=|:|：)?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*分?','gi');
+      const numeric = new RegExp(name+'\\s*(?:要求|成绩|分数)?\\s*(不高于|不超过|不低于|至少|至多|低于|高于|小于|大于|超过|达到|为|是|有|≤|≥|<=|>=|<|>|=|:|：)?\\s*([+-]?\\d+(?:\\.\\d+)?)\\s*分?\\s*(以上|以下)?','gi');
       for (const match of [...remaining.matchAll(numeric)]) {
-        const number=Number(match[2]), comparison=match[1]||'', op=/^(不低于|至少|达到|≥|>=)$/.test(comparison)?'>=':/^(高于|大于|超过|>)$/.test(comparison)?'>':/^(低于|小于|<)$/.test(comparison)?'<':'<=';
+        const number=Number(match[2]), comparison=match[1]||'', suffix=match[3]||'';
+        const explicit=/^(不低于|至少|达到|≥|>=)$/.test(comparison)?'>=':/^(高于|大于|超过|>)$/.test(comparison)?'>':/^(低于|小于|<)$/.test(comparison)?'<':/^(不高于|不超过|至多|≤|<=)$/.test(comparison)?'<=':'';
+        if (explicit && suffix && (explicit.startsWith('>') !== (suffix==='以上'))) errors.push(`${label} 条件冲突，请调整分数前后的范围。`);
+        const op=explicit||(suffix==='以上'?'>=':'<=');
         if (number<0 || number>max || (kind==='ielts_min' && number*2%1)) errors.push(`${label} 数值需为 0–${max}${kind==='ielts_min'?'，以 0.5 为间隔':''}。`);
         add(match.index,match[0].length,{kind,value:number,op,label:`${label} 要求 ${op.replace('<=','≤').replace('>=','≥')} ${number}`});
       }
@@ -162,12 +168,16 @@
     if (!query.trim()) return items.map(answer);
     const terms=plan.terms;
     const options=term=>catalog.synonym_groups.find(group=>group.map(compact).includes(compact(term)))?.map(compact)||[compact(term)];
-    const matches=(term,raw)=>options(term).some(option=>optionMatches(option,raw,compact(raw)));
+    const broadSubjects=new Set(['商科','商业','商务','工商','business','经济','计算机','电脑','信息技术','computer','computing','it','教育','教学','education','工程','engineering','传媒','媒体','传播','media','communication','医学','医疗','medicine','medical','法律','law','建筑','环境','数据','data','艺术','理学','科学']);
+    const broad=broadSubjects.has(compact(terms.join(' ')));
+    const specific=terms.length>0&&!broad&&!/学院|\bfaculty\b|\bschool\b/i.test(query);
+    const matches=(term,raw,precise=false)=>options(term).filter(option=>!precise||option===compact(term)||!broadSubjects.has(option)).some(option=>optionMatches(option,raw,compact(raw)));
     let scored=[];
     for (const item of items) {
       const raw=[...['university','university_cn','university_abbr','faculty','faculty_cn','programme_name','programme_name_cn','field','study_mode'].map(key=>item[key]||''),...(item.aliases||[]),...(item.university_aliases||[])].join(' ');
       if (!terms.every(term=>matches(term,raw))) continue;
       const name=`${item.programme_name_cn||''} ${item.programme_name||''}`, faculty=`${item.faculty_cn||''} ${item.faculty||''}`;
+      if (specific&&!terms.every(term=>matches(term,[name,...(item.aliases||[])].join(' '),true))) continue;
       const needle=compact(terms.join(''));
       const exact=needle&&[item.programme_name_cn,item.programme_name].some(title=>title&&(compact(title)===needle||phraseIn(query,title)));
       const score=terms.filter(term=>matches(term,name)).length*5+terms.filter(term=>matches(term,faculty)).length*2+terms.filter(term=>compact(name).startsWith(compact(term))).length*4
