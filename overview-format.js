@@ -15,11 +15,13 @@
     const scope={total:'全程',from_total:'全程起',per_year:'年',per_semester:'学期',minimum_total:'最低学制总额'}[row.tuition_fee_scope];
     const text=String(row.summaries?.fee||row.tuition_fee_requirement_cn||row.fee_preview||'');
     const compact=row.fee_preview_card_cn;
+    if(compact&&/费用(?:表)?有差异/.test(compact))return compact;
     if(['TAYLORS','UUM','HELP'].includes(row.university_abbr)&&compact&&/(?:RM|MYR|USD|CNY|GBP|EUR)\s*[\d,]/i.test(compact))return compact;
     if(row.tuition_fee_amount!=null&&row.tuition_fee_currency&&scope){
       const currency=row.tuition_fee_currency==='MYR'?'RM':row.tuition_fee_currency;
       const tax=/(?:不含|未含)(?:国际生)?\s*(?:6%\s*)?(?:SST|服务税|税)/i.test(text)?'，不含税':'';
-      return `${currency} ${Number(row.tuition_fee_amount).toLocaleString('zh-CN')} / ${scope}${row.tuition_fee_year||tax?`（${[row.tuition_fee_year?row.tuition_fee_year+'年':'',tax.replace(/^，/,'')].filter(Boolean).join('，')}）`:''}`;
+      const year=row.tuition_fee_year?row.tuition_fee_year+'年':['UM','USM','UKM'].includes(row.university_abbr)?'年份未标':'';
+      return `${currency} ${Number(row.tuition_fee_amount).toLocaleString('zh-CN')} / ${scope}${year||tax?`（${[year,tax.replace(/^，/,'')].filter(Boolean).join('，')}）`:''}`;
     }
     if(compact&&/(?:RM|MYR|USD|CNY|GBP|EUR)\s*[\d,]/i.test(compact))return compact;
     const clause=text.split(/[；;。\n]/).find(x=>/(?:学费|tuition)/i.test(x)&&/(?:RM|MYR|USD|CNY|GBP|EUR)\s*[\d,]/i.test(x));

@@ -28,6 +28,7 @@
     return {row,misses,unknown,rank:misses.length?2:unknown.length?1:0};
   }
   function matchRows(rows,profile){return rows.map(row=>evaluate(row,profile)).filter(item=>item&&(!profile.cgpa||!item.unknown.includes('CGPA'))&&(!profile.ielts||!item.unknown.includes('IELTS'))).sort((a,b)=>a.rank-b.rank||a.unknown.length-b.unknown.length||(a.row.programme_name_cn||'').localeCompare(b.row.programme_name_cn||'','zh-CN'));}
+  function unknownCandidates(rows,profile){return rows.map(row=>evaluate(row,profile)).filter(item=>item&&!item.misses.length&&((profile.cgpa&&item.unknown.includes('CGPA'))||(profile.ielts&&item.unknown.includes('IELTS'))));}
   function factTags(row){return [row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:'',row.ielts_min!=null?`IELTS ${row.ielts_min}`:''].filter(Boolean)}
   const form=$('matchForm'),steps=[...document.querySelectorAll('.match-step')],progress=[...document.querySelectorAll('[data-go-step]')];
   let step=0,furthestStep=0,matchVersion=0;
@@ -73,12 +74,12 @@
   progress.forEach(button=>button.addEventListener('click',()=>{const next=Number(button.dataset.goStep);if(next<=step||validateStep(step))setStep(next);}));
   form.addEventListener('change',()=>{++matchVersion;updateAnswers();});
   if(steps.length){form.noValidate=true;setStep(0,false);}
-  let eligible=[],currentProfile,visibleCount=24;
+  let eligible=[],currentProfile,visibleCount=24,unknownCount=0;
   function render(items,profile,reset=true,animateFrom=0){
     if(reset){eligible=items.filter(x=>!x.misses.length);currentProfile=profile;visibleCount=24}
     const shown=eligible.slice(0,visibleCount);
     $('matchTitle').textContent=`初步筛选出 ${eligible.length} 个专业`;
-    $('matchNote').textContent=`当前显示 ${shown.length} 个。`;
+    $('matchNote').textContent=`当前显示 ${shown.length} 个。${unknownCount?`另有 ${unknownCount} 个专业因所填成绩的门槛资料不完整未列入结果，需人工核对；这不代表不符合申请条件。`:''}`;
     $('matchScoreNote').hidden=currentProfile.scoreType!=='average'||!currentProfile.average;
     $('matchScoreNote').textContent=currentProfile.average?`百分制均分 ${currentProfile.average} 分段，按约 ${currentProfile.cgpa}/4.0 进行初筛；最终以申请院校审核为准。`:'';
     const html=shown.length?(reset?shown:shown.slice(animateFrom)).map(({row})=>window.StudyUI.courseCard(row,{arriving:!reset})).join(''):'<div class="empty-state"><h2>暂时没有匹配结果</h2><p>可以放宽专业方向或修改成绩，也可以回到专业查询继续浏览。</p></div>';
@@ -97,7 +98,7 @@
     if(!validateStep(0)||!validateStep(1))return;
     const data=new FormData(event.currentTarget),scoreType=data.get('scoreType'),score=Number(data.get('academicScore'))||0,profile={field:data.get('field'),scoreType,average:scoreType==='average'?score:0,cgpa:scoreType==='average'?averageToCgpa(score):scoreType==='cgpa'?score:0,ielts:Number(data.get('ielts'))||0};
     const version=++matchVersion,button=event.currentTarget.querySelector('.match-submit');button.disabled=true;button.textContent='正在匹配…';
-    try{const rows=await window.hostedKB(`/api/search?q=&degree_level=${encodeURIComponent(data.get('degree'))}`);if(version===matchVersion)await render(matchRows(rows,profile),profile);}
+    try{const rows=await window.hostedKB(`/api/search?q=&degree_level=${encodeURIComponent(data.get('degree'))}`);if(version===matchVersion){unknownCount=unknownCandidates(rows,profile).length;await render(matchRows(rows,profile),profile);}}
     catch(error){if(version===matchVersion){button.textContent='重新匹配';$('matchError').hidden=false;$('matchError').textContent='资料加载失败，请检查网络后重试。';}}
     finally{button.disabled=false;if(button.textContent!=='重新匹配')button.textContent='查看匹配结果'}
   });
@@ -114,5 +115,5 @@
   function editAnswers(index=0){const update=()=>{$('matchResults').hidden=true;$('matchForm').hidden=false;$('matchLayout').hidden=false;setStep(index);};Promise.resolve(window.StudyUI?window.StudyUI.transition(update,$('matchForm')):update()).then(()=>scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'}));}
   $('editAnswers').addEventListener('click',()=>editAnswers());
   $('answerSummary')?.addEventListener('click',event=>{const button=event.target.closest('[data-edit-step]');if(button)editAnswers(Number(button.dataset.editStep));});
-  globalThis.StudyMatcher={evaluate,matchRows,averageToCgpa,factTags};
+  globalThis.StudyMatcher={evaluate,matchRows,unknownCandidates,averageToCgpa,factTags};
 })();
