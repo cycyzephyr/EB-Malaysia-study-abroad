@@ -46,7 +46,7 @@ function uumDetails(r){
 function durationText(r){return r.duration_min_months!=null?`${r.duration_max_months==null?'至少':''}${r.duration_min_months}${r.duration_max_months!=null&&r.duration_max_months!==r.duration_min_months?'–'+r.duration_max_months:''}个月`:'';}
 
 function curriculumDetails(r){
-  const c=r.curriculum;if(!c)return '';
+  const c=r.curriculum;if(!c)return r.university_abbr==='UTAR'?'<section class="requirements curriculum"><h3>课程与培养内容</h3><p>本次尚未核实可准确对应本项目的课程或培养资料，请向学院索取当届课程结构。</p></section>':'';
   const heading='课程与培养内容';
   const itemLabel=c.content_type==='transfer_structure'?'可衔接专业方向':c.content_type==='research_structure'?'研究或培养内容':c.content_type==='programme_overview'?'培养内容概览':c.content_type==='official_structure'?'课程/培养模块':c.content_type==='clinical_structure'?'课程与临床培养内容':c.content_type==='partial_courses'?'课程名称或学习方向（部分资料）':'课程名称';
   const overview=[c.academic_year?`${c.academic_year} 学年手册`:c.source_label||'官方课程结构',c.duration_years!=null?`${c.duration_years} 年`:'',c.semesters!=null?`${c.semesters} 个学期`:'',c.total_credits!=null?`毕业 ${c.total_credits} 学分`:c.maximum_credits!=null?`最多 ${c.maximum_credits} 学分`:''].filter(Boolean).join(' · ');
