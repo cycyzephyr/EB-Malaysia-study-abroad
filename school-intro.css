@@ -25,3 +25,14 @@
 .school-faculties .page-link{max-width:100%;overflow-wrap:anywhere;text-align:left;background:var(--surface);font-size:13px;border:1px solid var(--line)}
 .school-sources{padding-left:20px;font-size:14px;line-height:2}
 @media(max-width:720px){.school-profile{padding:20px}.school-profile h1{font-size:23px}.school-profile .course-school{align-items:flex-start}.school-intro-card h2{font-size:19px}.school-summary{font-size:14px}}
+
+.school-directory-header{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.school-directory-header .course-school{margin:0}.school-directory-header h1{font-size:28px;margin:0}.school-directory-header .en{margin:5px 0 0}
+.school-directory-intro{margin:30px 0 18px}.school-directory-intro h2{font-size:22px;margin:0 0 6px}.school-directory-intro p,.school-directory-note{color:var(--muted);margin:0;font-size:14px;line-height:1.7}
+.school-degree-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+.school-degree{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}
+.school-degree-heading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px}.school-degree-heading h2{font-size:19px;margin:0}.school-degree-heading span,.school-faculty small{font-size:12px;color:var(--muted);white-space:nowrap}
+.school-faculty{border-top:1px solid var(--line)}.school-faculty summary{display:flex;align-items:center;gap:8px;cursor:pointer;padding:14px 0;font-weight:600;line-height:1.5;list-style:none}.school-faculty summary::-webkit-details-marker{display:none}.school-faculty summary span{flex:1;overflow-wrap:anywhere}.school-faculty summary:after{content:'+';font-size:20px;color:var(--accent);font-weight:400}.school-faculty[open] summary:after{content:'−'}
+.school-faculty ul{padding:0 0 12px;list-style:none;margin:0}.school-faculty li+li{border-top:1px solid var(--line)}.school-faculty li a{display:block;color:var(--muted);padding:9px 0;font-size:14px;line-height:1.5;text-decoration:none;overflow-wrap:anywhere}.school-faculty li a:hover{color:var(--accent)}
+.school-degree-empty{color:var(--muted);font-size:14px}.school-directory-note{margin:18px 0}
+@media(max-width:850px){.school-degree-grid{grid-template-columns:1fr}.school-directory-header h1{font-size:23px}}
