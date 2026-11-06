@@ -1,5 +1,5 @@
 (() => {
-  const schools = new Set(['SUNWAY','CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM','HELP','UPSI','UUM','UTAR','LUC']);
+  const schools = new Set(['SUNWAY','CITY','TAYLORS','APU','INTI','MUM','SEGI','UCSI','UKM','UM','UNM','UPM','USM','UTM','HELP','UPSI','UUM','UTAR','LUC','NEUC']);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const version = document.currentScript?.src?.split('?')[1] || '';
   const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -29,7 +29,7 @@
   }
   function schoolBadge(row) {
     const abbr = row.university_abbr || '院校', name = row.university_cn || row.university || abbr;
-    const extension = {CITY:'png',TAYLORS:'svg',HELP:'png',UPSI:'png',UUM:'jpg',UTAR:'jpg'}[abbr] || 'webp';
+    const extension = {CITY:'png',TAYLORS:'svg',HELP:'png',UPSI:'png',UUM:'jpg',UTAR:'jpg',NEUC:'png'}[abbr] || 'webp';
     const logo = `./assets/school-${abbr}.${extension}${version?'?'+version:''}`;
     return `<div class="match-school" title="${esc(name)}">${schools.has(abbr)?`<img class="school-logo" src="${esc(logo)}" alt="${esc(name)}校徽" width="72" height="48" loading="lazy" decoding="async" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${esc(abbr)}',ariaLabel:'${esc(name)}校徽暂不可用'}))">`:`<span>${esc(name)}</span>`}</div>`;
   }
