@@ -54,7 +54,7 @@
     };
     const cardRequirementLimit=row.university_abbr==='CITY'?56:110;
     const firstRequirement=text=>compact(clean(text).replace(/^(?:(?:官网国际学生要求：|国际学生：|不同前置学历分列要求：|不同资格路径分别审核：|分别适用：)\s*)+/, '').split(/[；;。\n]/)[0],56);
-    const academicText=query?(row.cgpa_min!=null?`CGPA ≥ ${row.cgpa_min}`:firstRequirement(fullAcademic||row.academic_preview_cn)):compact(clean(row.academic_preview_cn)||(row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:fullAcademic),cardRequirementLimit);
+    const academicText=query?(row.university_abbr==='NEUC'&&row.academic_preview_cn?compact(clean(row.academic_preview_cn),110):row.cgpa_min!=null?`CGPA ≥ ${row.cgpa_min}`:firstRequirement(fullAcademic||row.academic_preview_cn)):compact(clean(row.academic_preview_cn)||(row.cgpa_min!=null?`CGPA ${row.cgpa_min}`:fullAcademic),cardRequirementLimit);
     const tableIelts=row.university_abbr==='TAYLORS'&&fullLanguage.match(/原2026\.03\.05语言表[^：]*：IELTS\s*(\d(?:\.\d)?)/i);
     const ieltsClause=fullLanguage.split(/[；;。\n]/).find(text=>/IELTS\s*\d/i.test(text));
     const languageText=row.ielts_min!=null?`IELTS ${row.ielts_min}`:query?(tableIelts?`IELTS ${tableIelts[1]}（2026语言表）`:ieltsClause?firstRequirement(ieltsClause):fullLanguage?'雅思要求见详情':''):compact(fullLanguage,cardRequirementLimit);

@@ -36,3 +36,19 @@
 .school-faculty ul{padding:0 0 12px;list-style:none;margin:0}.school-faculty li+li{border-top:1px solid var(--line)}.school-faculty li a{display:block;color:var(--muted);padding:9px 0;font-size:14px;line-height:1.5;text-decoration:none;overflow-wrap:anywhere}.school-faculty li a:hover{color:var(--accent)}
 .school-degree-empty{color:var(--muted);font-size:14px}.school-directory-note{margin:18px 0}
 @media(max-width:850px){.school-degree-grid{grid-template-columns:1fr}.school-directory-header h1{font-size:23px}}
+
+/* Compact the school directory while leaving school profiles unchanged. */
+.school-pages #schoolList{gap:12px}
+.school-pages .school-intro-card{padding:15px;border-radius:14px}
+.school-intro-card .course-school{gap:9px;margin-bottom:6px}
+.school-intro-card .match-school{width:49px;height:40px;padding:4px}
+.school-intro-card .school-logo{width:41px;height:31px}
+.school-intro-card h2{font-size:17px}
+.school-intro-card .en{font-size:12px;line-height:1.4;margin:0 0 6px}
+.school-intro-card .school-summary{font-size:13px;line-height:1.5}
+.school-intro-card .school-intro-facts{gap:8px;margin:10px 0}
+.school-intro-card .course-facts dt{margin-bottom:2px}
+.school-intro-card .course-facts dd{font-size:13px;line-height:1.4}
+.school-intro-card .course-footer{gap:8px;padding-top:8px}
+.school-intro-card .course-footer .page-link{min-height:36px;font-size:13px}
+@media(min-width:1100px){.school-pages #schoolList{grid-template-columns:repeat(3,minmax(0,1fr))}}
