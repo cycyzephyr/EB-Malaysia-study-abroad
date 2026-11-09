@@ -12,7 +12,7 @@
   });}
   function facts(r){
     const s=r.summaries||{},academic=clean(s.cgpa||r.academic_requirement_cn),background=clean(s.background||r.entry_requirement_cn),first=academic.split(/[\n。；]/)[0].trim(),m=first.match(r.university_abbr==='SEGI'?/CGPA\s*(≥|>=|>|≤|<=|至少|不低于)?\s*(\d(?:\.\d+)?)/i:/CGPA\s*(≥|>=|>|≤|<=)?\s*(\d(?:\.\d+)?)/i);
-    let gpa=null;if(m&&m.index<65){let qualifier=first.slice(0,m.index).replace(/[：:，, ]+$/,'').trim();if(qualifier.length<=24)gpa={value:(/至少|不低于/.test(m[1]||'')?'≥':m[1]||'')+' '+m[2],note:qualifier};}
+    let gpa=null;if(m&&m.index<65){let qualifier=first.slice(0,m.index).replace(/[：:，, ]+$/,'').trim();if(qualifier.length<=24&&!/(?:须|需|要求|工作经验|评估|面试|先修|subject to|experience)/i.test(first.slice(m.index+m[0].length)))gpa={value:(/至少|不低于/.test(m[1]||'')?'≥':m[1]||'')+' '+m[2],note:qualifier};}
     const duration=durationText(clean(s.duration||r.duration_requirement_cn)||(r.duration_min_months!=null?`${r.duration_max_months==null?'至少 ':''}${r.duration_min_months}${r.duration_max_months&&r.duration_max_months!==r.duration_min_months?'–'+r.duration_max_months:''} 个月`:''));
     const fee=clean(s.fee||r.tuition_fee_requirement_cn||r.fee_preview),scope={total:'全程',per_year:'每年',per_semester:'每学期',from_total:'全程起',minimum_total:'最低学制参考总额'}[r.tuition_fee_scope]||'';
     const amounts=[...fee.matchAll(/(?:RM|MYR|USD|GBP|EUR)\s*[\d,]+(?:\.\d+)?/gi)];
@@ -44,6 +44,28 @@
     for(const g of c.groups||[]){const lines=[];let req=clean(g.requirement);if(r.university_abbr==='SEGI'&&req==='官网列示学习内容；本组未进一步说明必选关系，实际组合及开课以学院安排为准。'){unspecified=true;req='';}if(/^按本组选修规则选择 1 门；每条课程中的 OR 继续表示互选。$/.test(req)||/^按手册课程组件修读；国际与本地学生的替代通识课分别适用。$/.test(req))req='';req=req.replace(/^条件性先修模块：是否需要修读及具体安排，按申请者本科背景与学校审核结果确定；不计作所有学生统一必修的主课程。 官网先修模块安排：全日制 1 个月；非全日制 4 个月。$/, '是否修读依学校审核结果确定\n全日制 1 个月 / 非全日制 4 个月');if(req)lines.push(req);for(const q of g.courses||[]){let n=clean(q.name_cn||q.name_en);if(!n)continue;if(q.credits!=null)n+=`（${q.credits} 学分）`;if(q.note&&!/^OR 为互选关系/.test(q.note))n+=`：${q.note}`;lines.push('• '+n)}if(lines.length)add((g.title||'课程')+(g.credits!=null?` · ${g.credits} 学分`:''),lines.join('\n'));}
     for(const note of c.notes||[]){if(!/^依据本专业官方页面整理/.test(note)&&/选修|不同|冲突|差异|不一致|预先|适用|年份|学年|不代表|非完整|部分资料|延期/.test(note))add('课程说明',note.replace(/[^。；]*(?:本站整理|辅助翻译|官方原文|官方资料为准|按原文要求选择)[^。；]*[。；]?/g,'').replace(/以\d{4}年\d{1,2}月\d{1,2}日读取的[^。；]*[。；]?/g,'').trim());}
     if(unspecified)add('课程说明','部分课程的必选关系未标明。');return entries;}
+  // Keep complete requirements for each selected course group; only course bullets are sampled.
+  function selectCourses(entries, brief=true, selected=null){
+    const groups=entries.map((entry,index)=>({entry,index,lines:entry.text.split('\n')}));
+    const candidates=groups.filter(g=>!selected||selected.has(g.index)).flatMap(g=>g.lines.map((line,i)=>({group:g.index,i,line,score:(/核心|必修|core/i.test(g.entry.label)?4:0)-(/通识|公共|university|general studies/i.test(g.entry.label)?4:0)})).filter(x=>/^• /.test(x.line)));
+    const ranked=[];for(const score of [...new Set(candidates.map(x=>x.score))].sort((a,b)=>b-a)){const pool=candidates.filter(x=>x.score===score),ids=[...new Set(pool.map(x=>x.group))];for(let n=0;n<pool.length;n++){let added=false;for(const id of ids){const item=pool.filter(x=>x.group===id)[n];if(item){ranked.push(item);added=true;}}if(!added)break;}}
+    const chosen=new Set((brief?ranked.slice(0,8):candidates).map(x=>`${x.group}:${x.i}`));
+    const sampled=brief&&chosen.size<candidates.length;
+    const result=[];
+    for(const g of groups){
+      if(selected&&!selected.has(g.index))continue;
+      const hasBullets=g.lines.some(line=>/^• /.test(line));
+      const lines=g.lines.filter((line,i)=>!/^• /.test(line)||chosen.has(`${g.index}:${i}`));
+      if(hasBullets&&!lines.some(line=>/^• /.test(line)))continue;
+      if(lines.length)result.push({label:g.entry.label,text:lines.join('\n')});
+    }
+    if(sampled&&result.some(x=>/^• /m.test(x.text)))result.unshift({label:'课程范围',text:'以下为部分课程示例，完整课程请查看专业详情。'});
+    return result;
+  }
+  function cleanPosterEntry(entry){
+    const lines=entry.text.split('\n').filter(line=>!/^\s*(?:click (?:on |here)|点击(?:此处|这里|链接)|手册\s*PDF\s*第\s*\d+\s*页)/i.test(line));
+    return {...entry,text:lines.join('\n').trim()};
+  }
   function wrap(c,value,width){const lines=[];for(const para of String(value||'').replace(/\r/g,'').split('\n')){let line='';const tokens=para.match(/(?:(?:不含|另计|加收)?\s*6%\s*(?:SST|服务税))|[A-Za-z0-9]+(?:[’'./+–—-][A-Za-z0-9]+)*|[^\S\n]+|[^\n]/gu)||[];for(const token of tokens){for(const part of c.measureText(token).width>width?Array.from(token):[token]){if(line&&c.measureText(line+part).width>width){if(/^[）】，。：；、]/.test(part)&&line.length>1){lines.push(line.slice(0,-1));line=line.slice(-1)+part}else{lines.push(line.trimEnd());line=part.trimStart()}}else line+=part}}if(line)lines.push(line)}return lines;}
   function paragraphs(row){
     const parts=String(row.text).replace(/\r/g,'').split('\n').filter(Boolean);if(!/学术要求|申请条件|学历与专业背景/.test(row.label))return parts;
@@ -128,11 +150,26 @@
   function sheet(c,r,brand,section,blocks,index,total){header(c,r,brand,section,index,total);let y=420;blocks.forEach((b,i)=>{box(c,54,y,972,b.height,PALE);box(c,75,y+12,93,52,BLUE,14);txt(c,String(i+1).padStart(2,'0'),95,y+49,28,'white',700);let size=30;c.font=`700 ${size}px ${FONT}`;while(c.measureText(b.label).width>790&&size>20){size--;c.font=`700 ${size}px ${FONT}`}txt(c,b.label,205,y+38,size,BLUE,700);b.lines.forEach((v,j)=>txt(c,v,205,y+81+j*44,30));y+=b.height+14;});}
   // Standard ZIP (stored, UTF-8 filenames), so all PNGs download in one file without a dependency.
   function zip(files){const enc=new TextEncoder(),parts=[],central=[];let offset=0;const crc=bytes=>{let n=0xffffffff;for(const b of bytes){n^=b;for(let i=0;i<8;i++)n=(n>>>1)^(-(n&1)&0xedb88320)}return(n^0xffffffff)>>>0;};const put=(size,values)=>{const b=new Uint8Array(size),v=new DataView(b.buffer);for(const [p,n,s] of values)s===2?v.setUint16(p,n,true):v.setUint32(p,n,true);return b;};for(const file of files){const name=enc.encode(file.name),bytes=file.bytes,sum=crc(bytes);const head=put(30,[[0,0x04034b50,4],[4,20,2],[6,0x800,2],[8,0,2],[14,sum,4],[18,bytes.length,4],[22,bytes.length,4],[26,name.length,2]]);parts.push(head,name,bytes);const ch=put(46,[[0,0x02014b50,4],[4,20,2],[6,20,2],[8,0x800,2],[16,sum,4],[20,bytes.length,4],[24,bytes.length,4],[28,name.length,2],[42,offset,4]]);central.push(ch,name);offset+=head.length+name.length+bytes.length;}const size=central.reduce((n,x)=>n+x.length,0);const end=put(22,[[0,0x06054b50,4],[8,files.length,2],[10,files.length,2],[12,size,4],[16,offset,4]]);return new Blob([...parts,...central,end],{type:'application/zip'});}
-  async function open(r){const dialog=document.createElement('dialog');dialog.className='programme-poster-dialog';dialog.innerHTML='<div class="programme-poster-bar"><strong>专业图文</strong><button type="button" aria-label="关闭">×</button></div><div class="programme-poster-preview"><p role="status">正在生成图片…</p></div>';document.body.append(dialog);const preview=dialog.querySelector('.programme-poster-preview'),urls=[];const close=()=>{dialog.close();dialog.remove();urls.forEach(u=>URL.revokeObjectURL(u));};dialog.querySelector('button').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.showModal();try{await document.fonts?.ready;const brand=await image(new URL('assets/poster-brand.png',base));const logoExt={MUM:'jpg',UPM:'jpg',UUM:'jpg',TAYLORS:'svg',SUNWAY:'webp',LUC:'webp'}[r.university_abbr]||'png';const logo=await image(new URL(`assets/poster-school-${r.university_abbr}.${logoExt}`,base));const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1440;const ctx=canvas.getContext('2d'),f=facts(r),course=courses(r),renders=[];renders.push(()=>cover(ctx,r,brand,logo));let remaining=[];renders.push(()=>{remaining=info(ctx,r,brand,f)});
-    // Draw once to determine which details fit under the highlighted facts.
-    remaining=info(ctx,r,brand,f);const details=paginate(ctx,remaining),coursePages=paginate(ctx,course,950,true);details.forEach((p,i)=>renders.push(()=>sheet(ctx,r,brand,'申请条件',p,i,details.length)));coursePages.forEach((p,i)=>renders.push(()=>sheet(ctx,r,brand,'课程设置',p,i,coursePages.length)));
-    preview.replaceChildren();const files=[];for(let i=0;i<renders.length;i++){renders[i]();const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG failed');const name=`${String(i+1).padStart(2,'0')}.png`,url=URL.createObjectURL(blob);urls.push(url);files.push({name,bytes:new Uint8Array(await blob.arrayBuffer())});const figure=document.createElement('figure'),im=document.createElement('img'),a=document.createElement('a');im.src=url;im.alt=`专业图文第 ${i+1} 张`;a.href=url;a.download=name;a.textContent=`下载第 ${i+1} 张`;figure.append(im,a);preview.append(figure);}
-    const archive=URL.createObjectURL(zip(files));urls.push(archive);const all=document.createElement('a');all.href=archive;all.download=(r.programme_name_cn||'专业图文').replace(/[\\/:*?"<>|]/g,'-')+'.zip';all.className='programme-poster-all';all.textContent='下载全部图片';preview.prepend(all);
-  }catch(e){preview.textContent='图片生成失败，请关闭后重试。';}}
-  window.StudyPoster={open,facts,courses,info,paginate,paragraphs,wrap,zip};
+  async function open(r){
+    const dialog=document.createElement('dialog');dialog.className='programme-poster-dialog';
+    dialog.innerHTML='<div class="programme-poster-bar"><strong>专业图文</strong><button type="button" aria-label="关闭">×</button></div><div class="programme-poster-options"><p>选择要展示的内容，简版默认精选最多 8 门课程；重点数字卡和申请条件固定展示，其他内容可选择。</p><label><input type="radio" name="poster-mode" value="brief" checked> 简版课程</label> <label><input type="radio" name="poster-mode" value="full"> 完整课程</label><details><summary>选择内容</summary><div class="poster-choices"></div></details><button type="button" class="poster-generate">生成预览</button></div><div class="programme-poster-preview"><p role="status">正在生成图片…</p></div>';
+    document.body.append(dialog);const preview=dialog.querySelector('.programme-poster-preview'),choices=dialog.querySelector('.poster-choices'),button=dialog.querySelector('.poster-generate'),urls=[];
+    const clear=()=>{urls.forEach(u=>URL.revokeObjectURL(u));urls.length=0;};
+    const close=()=>{dialog.close();dialog.remove();clear();};dialog.querySelector('.programme-poster-bar button').onclick=close;dialog.addEventListener('cancel',e=>{e.preventDefault();close();});dialog.showModal();
+    const f=facts(r),allCourses=courses(r).map(cleanPosterEntry).filter(x=>x.text),detailEntries=f.entries.map(cleanPosterEntry).filter(x=>x.text);
+    function addChoices(title,items,kind){if(!items.length)return;const heading=document.createElement('strong');heading.textContent=title;choices.append(heading);items.forEach((item,i)=>{const label=document.createElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=true;input.disabled=kind==='fact'&&/学术要求|申请条件|学历与专业背景/.test(item.label);input.dataset.kind=kind;input.value=String(i);label.append(input,document.createTextNode(' '+item.label));choices.append(label);});}
+    addChoices('申请信息',detailEntries,'fact');addChoices('课程分组与说明',allCourses,'course');
+    async function generate(){button.disabled=true;clear();preview.replaceChildren();preview.textContent='正在生成图片…';try{
+      await document.fonts?.ready;const brand=await image(new URL('assets/poster-brand.png',base));const logoExt={MUM:'jpg',UPM:'jpg',UUM:'jpg',TAYLORS:'svg',SUNWAY:'webp',LUC:'webp'}[r.university_abbr]||'png';const logo=await image(new URL(`assets/poster-school-${r.university_abbr}.${logoExt}`,base));
+      const selected=kind=>new Set([...choices.querySelectorAll(`input[data-kind="${kind}"]:checked`)].map(x=>Number(x.value)));
+      const factsSelected=selected('fact'),coursesSelected=selected('course'),visibleFacts={tiles:f.tiles,entries:detailEntries.filter((_,i)=>factsSelected.has(i))};
+      const course=selectCourses(allCourses,dialog.querySelector('input[name="poster-mode"]:checked').value==='brief',coursesSelected);
+      const canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1440;const ctx=canvas.getContext('2d'),renders=[];renders.push(()=>cover(ctx,r,brand,logo));renders.push(()=>info(ctx,r,brand,visibleFacts));
+      const remaining=info(ctx,r,brand,visibleFacts),details=paginate(ctx,remaining),coursePages=paginate(ctx,course,950,true);details.forEach((p,i)=>renders.push(()=>sheet(ctx,r,brand,'申请条件',p,i,details.length)));coursePages.forEach((p,i)=>renders.push(()=>sheet(ctx,r,brand,'课程设置',p,i,coursePages.length)));
+      preview.replaceChildren();const files=[];for(let i=0;i<renders.length;i++){renders[i]();const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(!blob)throw Error('PNG failed');const name=`${String(i+1).padStart(2,'0')}.png`,url=URL.createObjectURL(blob);urls.push(url);files.push({name,bytes:new Uint8Array(await blob.arrayBuffer())});const figure=document.createElement('figure'),im=document.createElement('img'),a=document.createElement('a');im.src=url;im.alt=`专业图文第 ${i+1} 张`;a.href=url;a.download=name;a.textContent=`下载第 ${i+1} 张`;figure.append(im,a);preview.append(figure);}
+      const archive=URL.createObjectURL(zip(files));urls.push(archive);const all=document.createElement('a');all.href=archive;all.download=(r.programme_name_cn||'专业图文').replace(/[\\/:*?"<>|]/g,'-')+'.zip';all.className='programme-poster-all';all.textContent='下载全部图片';preview.prepend(all);
+    }catch(e){preview.textContent='图片生成失败，请重试。';}finally{button.disabled=false;}}
+    button.onclick=generate;await generate();
+  }
+  window.StudyPoster={open,facts,courses,selectCourses,cleanPosterEntry,info,paginate,paragraphs,wrap,zip};
 })();
